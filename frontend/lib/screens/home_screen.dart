@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../services/auth_service.dart';
 import '../services/socket_service.dart';
 import '../services/background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'chat_screen.dart';
 import 'report_screen.dart';
 import 'admin_map_screen.dart';
 
@@ -15,11 +18,36 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  Map<String, dynamic> _stats = {'totalCollection': 0.0};
+  bool _isLoadingStats = true;
+
   @override
   void initState() {
     super.initState();
     _connectSocket();
     _requestPermissionsAndStartService();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final url = Uri.parse('${AuthService.baseUrl}/api/stats/user');
+    
+    try {
+      final response = await http.get(url, headers: {
+        'Authorization': 'Bearer ${authService.token}'
+      });
+
+      if (response.statusCode == 200) {
+        setState(() {
+          _stats = jsonDecode(response.body);
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      print('İstatistik yükleme hatası: $e');
+      setState(() => _isLoadingStats = false);
+    }
   }
 
   void _connectSocket() {
@@ -84,17 +112,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Text('Haftalık Tahsilat', style: TextStyle(color: Colors.white, fontSize: 16)),
                   const SizedBox(height: 10),
-                  const Text('₺ 42.500,00', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                  _isLoadingStats 
+                   ? const CircularProgressIndicator(color: Colors.white)
+                   : Text('₺ ${(_stats['totalCollection'] ?? 0).toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-                        child: const Text('+12%', style: TextStyle(color: Colors.white)),
+                        child: const Text('Bu Hafta', style: TextStyle(color: Colors.white)),
                       ),
                       const SizedBox(width: 10),
-                      const Text('Geçen haftaya göre', style: TextStyle(color: Colors.white70)),
+                      const Text('Pazartesiden itibaren', style: TextStyle(color: Colors.white70, fontSize: 12)),
                     ],
                   )
                 ],
@@ -158,7 +188,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Chat ekranına git
+           Navigator.push(
+            context,
+            MaterialPageRoute(
+               builder: (context) => const ChatScreen(targetId: 'admin', targetName: 'Yönetici ile Sohbet')
+            )
+           );
         },
         backgroundColor: const Color(0xFFE65100),
         child: const Icon(Icons.chat_bubble_outline),

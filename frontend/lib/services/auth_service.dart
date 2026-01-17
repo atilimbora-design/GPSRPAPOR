@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService with ChangeNotifier {
   // Raspberry Pi IP'si (Kullanıcının verdiği)
-  static const String baseUrl = 'http://192.168.1.104:3000'; 
+  static const String baseUrl = 'https://takip.atilimgida.com'; 
   
   String? _token;
   Map<String, dynamic>? _user;
@@ -59,6 +59,28 @@ class AuthService with ChangeNotifier {
       _token = token;
       _user = jsonDecode(userStr);
       notifyListeners();
+    }
+  }
+
+  Future<bool> submitReport(Map<String, dynamic> reportData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/reports'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token'
+        },
+        body: jsonEncode(reportData),
+      );
+
+      if (response.statusCode != 200) {
+        print('Report Submit Error Response: ${response.body}');
+      }
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Report Submit Error: $e');
+      return false;
     }
   }
 }

@@ -98,52 +98,55 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   const SizedBox(height: 50),
                   
                   // Login Formu
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 15,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _usernameController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Personel ID (örn: 01) veya Admin',
-                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                            prefixIcon: const Icon(Icons.person_outline, color: Color(0xFFE65100)),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.2)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 15,
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Şifre',
-                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFFE65100)),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _usernameController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Personel ID (örn: 01) veya Admin',
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                              prefixIcon: const Icon(Icons.person_outline, color: Color(0xFFE65100)),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 30),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _login,
-                            child: _isLoading
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text('GİRİŞ YAP'),
+                          const SizedBox(height: 20),
+                          TextField(
+                            controller: _passwordController,
+                            obscureText: true,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Şifre',
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFFE65100)),
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 30),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _login,
+                              child: _isLoading
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : const Text('GİRİŞ YAP'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -177,7 +180,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     try {
       final success = await Provider.of<AuthService>(context, listen: false).login(username, password);
       if (success) {
-        if (mounted) Navigator.pushReplacementNamed(context, '/home');
+        if (mounted) {
+           final user = Provider.of<AuthService>(context, listen: false).user;
+           if (user != null && user['role'] == 'admin') {
+             Navigator.pushReplacementNamed(context, '/admin-dashboard');
+           } else {
+             Navigator.pushReplacementNamed(context, '/home');
+           }
+        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

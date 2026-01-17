@@ -1,20 +1,50 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+// Geolocation service - Updated
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
 import 'services/auth_service.dart';
 import 'services/socket_service.dart';
 
+// Conditional import isn't enough, we need to modify pubspec.yaml but for now let's comment out the usages or mock it.
+// Actually, easiest fix is to remove the plugin from windows integration.
+// But we should try to disable it in code first.
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Windows pencere ayarları
+  if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux || defaultTargetPlatform == TargetPlatform.macOS)) {
+    await windowManager.ensureInitialized();
+
+    WindowOptions windowOptions = const WindowOptions(
+      size: Size(1920, 1080),
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      title: 'GPS RAPOR',
+      // fullScreen: true, // İsteğe bağlı
+      maximumSize: Size(1920, 1080),
+      minimumSize: Size(1280, 720),
+    );
+    
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+      // await windowManager.setResizable(false); // Kullanıcı boyut değiştiremesin
+    });
+  }
   // Status bar rengini ayarla (Transparent)
-  SystemChrome.setSystemUIOverlayStyle(const SystemUIOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-  ));
+  // Status bar rengini ayarla (Transparent)
+  // SystemChrome.setSystemUIOverlayStyle(const SystemUIOverlayStyle(
+  //   statusBarColor: Colors.transparent,
+  //   statusBarIconBrightness: Brightness.light,
+  // ));
 
   runApp(
     MultiProvider(
@@ -75,6 +105,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
+        '/admin-dashboard': (context) => const AdminDashboardScreen(),
       },
     );
   }
