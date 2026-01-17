@@ -2,14 +2,15 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+# Coolify Repo Root Context olduğu için path'leri backend/ olarak güncelliyoruz
+COPY backend/package*.json ./
 
 RUN npm install
 
-COPY . .
+COPY backend/ .
 
-# SQLite için klasör oluştur (Eğer yoksa)
-RUN mkdir -p /app/peronel
+# Veri klasörü oluştur
+RUN mkdir -p /app/personel
 
 EXPOSE 3000
 
