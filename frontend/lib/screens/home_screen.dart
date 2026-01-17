@@ -42,12 +42,12 @@ class _HomeScreenState extends State<HomeScreen> {
       if (response.statusCode == 200) {
         setState(() {
           _stats = jsonDecode(response.body);
-          _isLoadingStats = false;
         });
       }
     } catch (e) {
       print('İstatistik yükleme hatası: $e');
-      setState(() => _isLoadingStats = false);
+    } finally {
+      if (mounted) setState(() => _isLoadingStats = false);
     }
   }
 

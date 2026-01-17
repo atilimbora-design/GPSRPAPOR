@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -32,12 +33,12 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
       if (response.statusCode == 200) {
         setState(() {
           _reports = jsonDecode(response.body);
-          _isLoading = false;
         });
       }
     } catch (e) {
       print('Raporları çekme hatası: $e');
-      setState(() => _isLoading = false);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

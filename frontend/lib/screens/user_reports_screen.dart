@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service.dart';
 
+import 'report_detail_screen.dart';
+
 class UserReportsScreen extends StatefulWidget {
   const UserReportsScreen({super.key});
 
@@ -33,11 +35,12 @@ class _UserReportsScreenState extends State<UserReportsScreen> {
       if (response.statusCode == 200) {
         setState(() {
           _reports = jsonDecode(response.body);
-          _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      print('Rapor geçmişi hatası: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -90,7 +93,12 @@ class _UserReportsScreenState extends State<UserReportsScreen> {
                     subtitle: Text('${total.toStringAsFixed(2)} TL Tahsilat'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      // Detay veya PDF açma eklenebilir
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReportDetailScreen(report: report),
+                        ),
+                      );
                     },
                   ),
                 );

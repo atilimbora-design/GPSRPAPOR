@@ -193,7 +193,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             Text(
                               DateFormat('HH:mm').format(DateTime.parse(msg['timestamp'] ?? DateTime.now().toIso8601String()).toLocal()),
                               style: const TextStyle(fontSize: 10, color: Colors.grey),
-                              textAlign: CrossAxisAlignment.end,
+                              textAlign: TextAlign.end,
                             )
                           ],
                         ),
