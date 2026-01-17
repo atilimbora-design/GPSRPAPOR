@@ -8,6 +8,7 @@ import '../services/background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'chat_screen.dart';
 import 'report_screen.dart';
+import 'user_reports_screen.dart';
 import 'admin_map_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -153,7 +154,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.history, 
                   title: 'Geçmiş Raporlar', 
                   color: const Color(0xFF76FF03),
-                  onTap: () {}
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const UserReportsScreen()));
+                  }
                 ),
                 _buildMenuCard(
                   icon: Icons.person, 
