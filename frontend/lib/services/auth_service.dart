@@ -1,0 +1,64 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class AuthService with ChangeNotifier {
+  // Raspberry Pi IP'si (Kullanıcının verdiği)
+  static const String baseUrl = 'http://192.168.1.104:3000'; 
+  
+  String? _token;
+  Map<String, dynamic>? _user;
+
+  String? get token => _token;
+  Map<String, dynamic>? get user => _user;
+
+  bool get isAuthenticated => _token != null;
+
+  Future<bool> login(String username, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'password': password}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _token = data['token'];
+        _user = data['user'];
+        
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', _token!);
+        await prefs.setString('user', jsonEncode(_user));
+        
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Login Error: $e');
+      return false;
+    }
+  }
+
+  Future<void> logout() async {
+    _token = null;
+    _user = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    notifyListeners();
+  }
+
+  Future<void> checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final userStr = prefs.getString('user');
+
+    if (token != null && userStr != null) {
+      _token = token;
+      _user = jsonDecode(userStr);
+      notifyListeners();
+    }
+  }
+}
