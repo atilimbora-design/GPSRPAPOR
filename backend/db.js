@@ -7,55 +7,70 @@ const bcrypt = require('bcryptjs');
 const dbPath = path.join(__dirname, 'database.sqlite');
 
 const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: dbPath,
-  logging: false
+    dialect: 'sqlite',
+    storage: dbPath,
+    logging: false
 });
 
 const User = sequelize.define('User', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  },
-  personelCode: {
-    type: DataTypes.STRING,
-    unique: true,
-    allowNull: false
-  },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  role: {
-    type: DataTypes.ENUM('admin', 'user'),
-    defaultValue: 'user'
-  }
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    personelCode: {
+        type: DataTypes.STRING,
+        unique: true,
+        allowNull: false
+    },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    password: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    role: {
+        type: DataTypes.ENUM('admin', 'user'),
+        defaultValue: 'user'
+    }
 });
 
 const Report = sequelize.define('Report', {
-  date: DataTypes.DATEONLY,
-  vehiclePlate: DataTypes.STRING,
-  startKm: DataTypes.INTEGER,
-  endKm: DataTypes.INTEGER,
-  expenses: DataTypes.JSON, // { fuel: {amount, image}, maintenance: {desc, amount, image} }
-  collections: DataTypes.JSON, // { cash, creditCard, check, eft }
-  cashDelivered: DataTypes.FLOAT,
-  description: DataTypes.TEXT,
-  status: {
-    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
-    defaultValue: 'pending'
-  }
+    date: DataTypes.DATEONLY,
+    vehiclePlate: DataTypes.STRING,
+    startKm: DataTypes.INTEGER,
+    endKm: DataTypes.INTEGER,
+    expenses: DataTypes.JSON, // { fuel: {amount, image}, maintenance: {desc, amount, image} }
+    collections: DataTypes.JSON, // { cash, creditCard, check, eft }
+    cashDelivered: DataTypes.FLOAT,
+    description: DataTypes.TEXT,
+    status: {
+        type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+        defaultValue: 'pending'
+    }
 });
 
 const Location = sequelize.define('Location', {
-  latitude: DataTypes.FLOAT,
-  longitude: DataTypes.FLOAT,
-  timestamp: DataTypes.DATE
+    latitude: DataTypes.FLOAT,
+    longitude: DataTypes.FLOAT,
+    timestamp: DataTypes.DATE
+});
+
+const Message = sequelize.define('Message', {
+    content: DataTypes.TEXT,
+    type: {
+        type: DataTypes.ENUM('text', 'image', 'location'),
+        defaultValue: 'text'
+    },
+    mediaUrl: DataTypes.STRING,
+    senderName: DataTypes.STRING,
+    isGroup: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    groupId: DataTypes.STRING
 });
 
 // İlişkiler
@@ -65,66 +80,71 @@ Report.belongsTo(User);
 User.hasMany(Location);
 Location.belongsTo(User);
 
+User.hasMany(Message, { as: 'SentMessages', foreignKey: 'senderId' });
+User.hasMany(Message, { as: 'ReceivedMessages', foreignKey: 'receiverId' });
+Message.belongsTo(User, { as: 'Sender', foreignKey: 'senderId' });
+Message.belongsTo(User, { as: 'Receiver', foreignKey: 'receiverId' });
+
 const personnelList = [
-  { code: '01', name: 'Dinçer Sezan' },
-  { code: '02', name: 'Ferhat Öztaş' },
-  { code: '03', name: 'Sercan Dinç' },
-  { code: '04', name: 'Orçun Cansız' },
-  { code: '05', name: 'Muhammet Arık' },
-  { code: '06', name: 'Hüseyin Akgüneş' },
-  { code: '07', name: 'Emre Özdemir' },
-  { code: '08', name: 'Murat Deniz G. Dozdu' },
-  { code: '09', name: 'İlker Hepçetinler' },
-  { code: '11', name: 'Cemal Çenikli' },
-  { code: '13', name: 'Ozan Yılmaz' },
-  { code: '16', name: 'Ertunç Terazi' },
-  { code: '17', name: 'Hakan Kılınçdemir' },
-  { code: '19', name: 'Salih Arı' },
-  { code: '21', name: 'Fatih Tercan' },
-  { code: '23', name: 'Mertcan Sekerci' },
-  { code: '24', name: 'M. Cabbar Balarısı' },
-  { code: '25', name: 'Feti Bende' },
-  { code: '26', name: 'Tugay Güven' },
-  { code: '27', name: 'İsmail Sağır' },
-  { code: '28', name: 'Bahadır Deniz' },
-  { code: '40', name: 'Hasan Güler' },
-  { code: '42', name: 'Erol Dereli' }
+    { code: '01', name: 'Dinçer Sezan' },
+    { code: '02', name: 'Ferhat Öztaş' },
+    { code: '03', name: 'Sercan Dinç' },
+    { code: '04', name: 'Orçun Cansız' },
+    { code: '05', name: 'Muhammet Arık' },
+    { code: '06', name: 'Hüseyin Akgüneş' },
+    { code: '07', name: 'Emre Özdemir' },
+    { code: '08', name: 'Murat Deniz G. Dozdu' },
+    { code: '09', name: 'İlker Hepçetinler' },
+    { code: '11', name: 'Cemal Çenikli' },
+    { code: '13', name: 'Ozan Yılmaz' },
+    { code: '16', name: 'Ertunç Terazi' },
+    { code: '17', name: 'Hakan Kılınçdemir' },
+    { code: '19', name: 'Salih Arı' },
+    { code: '21', name: 'Fatih Tercan' },
+    { code: '23', name: 'Mertcan Sekerci' },
+    { code: '24', name: 'M. Cabbar Balarısı' },
+    { code: '25', name: 'Feti Bende' },
+    { code: '26', name: 'Tugay Güven' },
+    { code: '27', name: 'İsmail Sağır' },
+    { code: '28', name: 'Bahadır Deniz' },
+    { code: '40', name: 'Hasan Güler' },
+    { code: '42', name: 'Erol Dereli' }
 ];
 
 async function seed() {
-  await sequelize.sync({ force: true });
-  
-  const salt = await bcrypt.genSalt(10);
-  const defaultPassword = await bcrypt.hash('1234', salt);
-  const adminPassword = await bcrypt.hash('1234', salt); // Admin şifresi 1234
+    await sequelize.sync({ force: true });
 
-  // Admin oluştur
-  await User.create({
-    personelCode: 'admin',
-    name: 'Yönetici',
-    password: adminPassword,
-    role: 'admin'
-  });
+    const salt = await bcrypt.genSalt(10);
+    const defaultPassword = await bcrypt.hash('1234', salt);
+    const adminPassword = await bcrypt.hash('1234', salt); // Admin şifresi 1234
 
-  // Personelleri oluştur
-  for (const p of personnelList) {
+    // Admin oluştur
     await User.create({
-      personelCode: p.code,
-      name: p.name,
-      password: defaultPassword,
-      role: 'user'
+        personelCode: 'admin',
+        name: 'Yönetici',
+        password: adminPassword,
+        role: 'admin'
     });
-    
-    // Klasör yapısını oluştur
-    const userFolder = path.join(__dirname, 'personel', `${p.code}_${p.name.replace(/\s+/g, '_')}`, 'raporlar');
-    fs.mkdirSync(userFolder, { recursive: true });
-  }
 
-  console.log('Veritabanı ve klasörler başarıyla oluşturuldu!');
+    // Personelleri oluştur
+    for (const p of personnelList) {
+        await User.create({
+            personelCode: p.code,
+            name: p.name,
+            password: defaultPassword,
+            role: 'user'
+        });
+
+        // Klasör yapısını oluştur
+        const userFolder = path.join(__dirname, 'personel', `${p.code}_${p.name.replace(/\s+/g, '_')}`, 'raporlar');
+        fs.mkdirSync(userFolder, { recursive: true });
+    }
+
+    console.log('Veritabanı ve klasörler başarıyla oluşturuldu!');
 }
 
-module.exports = { sequelize, User, Report, Location, seed };
+module.exports = { sequelize, User, Report, Location, Message, seed };
 
 if (require.main === module) {
-  seed();
+    seed();
 }
