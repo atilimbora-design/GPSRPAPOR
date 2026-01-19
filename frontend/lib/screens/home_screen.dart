@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -26,8 +27,25 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _connectSocket();
-    _requestPermissionsAndStartService();
+    _requestPermissions();
     _fetchStats();
+  }
+
+  Future<void> _requestPermissions() async {
+    // Bildirim İzni (Android 13+)
+    await Permission.notification.request();
+    
+    // Konum İzni
+    var status = await Permission.location.request();
+    if (status.isGranted) {
+      // Arka plan izni (Android 10+)
+      // Kullanıcıdan "Her zaman izin ver" seçmesini istemek gerekebilir
+      await Permission.locationAlways.request();
+      // GPS Servisini Başlat (Sadece Mobil)
+      if (!kIsWeb) {
+        await initializeService();
+      }
+    }
   }
 
   Future<void> _fetchStats() async {

@@ -47,15 +47,20 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
                 ),
                 child: Text('$code', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
               ),
-              const Icon(Icons.location_on, color: Colors.orange, size: 40),
+              const SizedBox(height: 2),
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: const Color(0xFFE65100), // Atılım Turuncu
+                child: const Icon(Icons.person, color: Colors.white, size: 24),
+              ),
             ],
           ),
         );

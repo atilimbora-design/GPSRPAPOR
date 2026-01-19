@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
-// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +12,6 @@ import 'auth_service.dart';
 Future<void> initializeService() async {
   final service = FlutterBackgroundService();
 
-  /*
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
     'gps_tracking_channel',
     'GPS Takip Servisi',
@@ -26,7 +25,6 @@ Future<void> initializeService() async {
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
-  */
 
   await service.configure(
     androidConfiguration: AndroidConfiguration(

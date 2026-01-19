@@ -12,6 +12,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../services/auth_service.dart';
 
+import 'package:image_cropper/image_cropper.dart';
+
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
 
@@ -66,16 +68,89 @@ class _ReportScreenState extends State<ReportScreen> {
 
   // Resim Seçme
   Future<void> _pickImage(bool isFuel) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.camera, maxWidth: 800);
-    if (image != null) {
+    // 1. Eğitim Ekranı (Tutorial)
+    bool proceed = await _showTutorial();
+    if (!proceed) return;
+
+    // 2. Fotoğraf Çek
+    final XFile? image = await _picker.pickImage(source: ImageSource.camera, maxWidth: 1024);
+    if (image == null) return;
+
+    // 3. Kırpma İşlemi (Crop)
+    CroppedFile? croppedFile = await ImageCropper().cropImage(
+      sourcePath: image.path,
+      aspectRatioPresets: [
+        CropAspectRatioPreset.original,
+        CropAspectRatioPreset.square,
+        CropAspectRatioPreset.ratio3x2,
+        CropAspectRatioPreset.ratio4x3,
+        CropAspectRatioPreset.ratio16x9
+      ],
+      uiSettings: [
+        AndroidUiSettings(
+            toolbarTitle: 'Fişi Düzenle',
+            toolbarColor: const Color(0xFFE65100),
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false),
+        IOSUiSettings(
+          title: 'Fişi Düzenle',
+        ),
+      ],
+    );
+
+    if (croppedFile != null) {
       setState(() {
         if (isFuel) {
-          _fuelImage = image;
+          _fuelImage = XFile(croppedFile.path); // ImagePicker XFile tipine dönüştür
         } else {
-          _repairImage = image;
+          _repairImage = XFile(croppedFile.path);
         }
       });
     }
+  }
+
+  Future<bool> _showTutorial() async {
+    return await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black.withOpacity(0.9),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.orange, width: 2)),
+        title: const Text('Fiş Çekme Rehberi', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+        content: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+             Container(
+               height: 150,
+               width: double.infinity,
+               decoration: BoxDecoration(
+                 border: Border.all(color: Colors.white54, style: BorderStyle.solid),
+                 borderRadius: BorderRadius.circular(10)
+               ),
+               child: const Center(child: Icon(Icons.document_scanner, size: 80, color: Colors.white24)),
+             ),
+             const SizedBox(height: 20),
+             const Text("1. Fişi düz bir zemine koyun.", style: TextStyle(color: Colors.white)),
+             const SizedBox(height: 5),
+             const Text("2. Işığın yansımasını engelleyin.", style: TextStyle(color: Colors.white)),
+             const SizedBox(height: 5),
+             const Text("3. Yazıların okunur netlikte olduğundan emin olun.", style: TextStyle(color: Colors.white)),
+           ],
+        ),
+        actions: [
+           TextButton(
+             onPressed: () => Navigator.pop(context, false), 
+             child: const Text('İPTAL', style: TextStyle(color: Colors.grey))
+           ),
+           ElevatedButton(
+             onPressed: () => Navigator.pop(context, true), 
+             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE65100)),
+             child: const Text('KAMERAYI AÇ', style: TextStyle(color: Colors.white))
+           ),
+        ],
+      )
+    ) ?? false;
   }
 
   // Tarih Seçme
