@@ -245,46 +245,53 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           Expanded(
             child: _isLoading 
               ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SingleChildScrollView(
-                    child: DataTable(
-                      headingRowColor: WidgetStateProperty.all(Colors.white.withOpacity(0.1)),
-                      dataRowColor: WidgetStateProperty.all(Colors.white.withOpacity(0.05)),
-                      columns: const [
-                        DataColumn(label: Text('Tarih', style: TextStyle(color: Colors.white70))),
-                        DataColumn(label: Text('Personel', style: TextStyle(color: Colors.white70))),
-                        DataColumn(label: Text('Plaka', style: TextStyle(color: Colors.white70))),
-                        DataColumn(label: Text('Toplam Tahsilat', style: TextStyle(color: Colors.white70))),
-                        DataColumn(label: Text('Durum', style: TextStyle(color: Colors.white70))),
-                        DataColumn(label: Text('İşlem', style: TextStyle(color: Colors.white70))),
-                      ],
-                      rows: filteredReports.map((report) {
-                        final user = report['User'] ?? {};
-                        final total = _calculateTotal(report['collections']);
-                        
-                        return DataRow(cells: [
-                          DataCell(Text(report['date'] ?? '', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text('${user['name']} (${user['personelCode']})', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text(report['vehiclePlate'] ?? '', style: const TextStyle(color: Colors.white))),
-                          DataCell(Text('${total.toStringAsFixed(2)} TL', style: const TextStyle(color: Colors.greenAccent))),
-                          DataCell(_buildStatusChip(report['status'] ?? 'pending')),
-                          DataCell(IconButton(
-                            icon: const Icon(Icons.visibility, color: Colors.blue),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ReportDetailScreen(report: report),
-                                ),
-                              );
-                            },
-                          )),
-                        ]);
-                      }).toList(),
+              : filteredReports.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Bu filtrede rapor bulunamadı.',
+                        style: TextStyle(color: Colors.white54, fontSize: 16),
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          headingRowColor: WidgetStateProperty.all(Colors.white.withOpacity(0.1)),
+                          dataRowColor: WidgetStateProperty.all(Colors.white.withOpacity(0.05)),
+                          columns: const [
+                            DataColumn(label: Text('Tarih', style: TextStyle(color: Colors.white70))),
+                            DataColumn(label: Text('Personel', style: TextStyle(color: Colors.white70))),
+                            DataColumn(label: Text('Plaka', style: TextStyle(color: Colors.white70))),
+                            DataColumn(label: Text('Toplam Tahsilat', style: TextStyle(color: Colors.white70))),
+                            DataColumn(label: Text('Durum', style: TextStyle(color: Colors.white70))),
+                            DataColumn(label: Text('İşlem', style: TextStyle(color: Colors.white70))),
+                          ],
+                          rows: filteredReports.map((report) {
+                            final user = report['User'] ?? {};
+                            final total = _calculateTotal(report['collections']);
+                            
+                            return DataRow(cells: [
+                              DataCell(Text(report['date'] ?? '', style: const TextStyle(color: Colors.white))),
+                              DataCell(Text('${user['name']} (${user['personelCode']})', style: const TextStyle(color: Colors.white))),
+                              DataCell(Text(report['vehiclePlate'] ?? '', style: const TextStyle(color: Colors.white))),
+                              DataCell(Text('${total.toStringAsFixed(2)} TL', style: const TextStyle(color: Colors.greenAccent))),
+                              DataCell(_buildStatusChip(report['status'] ?? 'pending')),
+                              DataCell(IconButton(
+                                icon: const Icon(Icons.visibility, color: Colors.blue),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ReportDetailScreen(report: report),
+                                    ),
+                                  );
+                                },
+                              )),
+                            ]);
+                          }).toList(),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
           ),
         ],
       ),

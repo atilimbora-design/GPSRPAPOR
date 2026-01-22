@@ -209,7 +209,7 @@ io.on('connection', (socket) => {
                 } else {
                     groupId = `user_${socket.user.id}_admins`;
                 }
-            } else if (data.to.startsWith('group_')) {
+            } else if (typeof data.to === 'string' && data.to.startsWith('group_')) {
                 groupId = data.to;
             } else {
                 receiverId = data.to;
