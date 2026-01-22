@@ -27,6 +27,7 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
   void initState() {
     super.initState();
     _fetchUsers();
+    _ensureSocketConnected();
     
     final socketService = Provider.of<SocketService>(context, listen: false);
     socketService.socket?.on('newMessage', _handleNewMessage);
@@ -83,6 +84,15 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
     } catch (e) {
       print('Kullanıcı listesi hatası: $e');
       setState(() => _isLoadingUsers = false);
+    }
+  }
+
+  void _ensureSocketConnected() {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final socketService = Provider.of<SocketService>(context, listen: false);
+    final token = authService.token;
+    if (token != null) {
+      socketService.connect(token);
     }
   }
 

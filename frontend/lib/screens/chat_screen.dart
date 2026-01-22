@@ -28,6 +28,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _loadMessages();
+    _ensureSocketConnected();
     
     // Socket listener setup
     final socketService = Provider.of<SocketService>(context, listen: false);
@@ -40,6 +41,15 @@ class _ChatScreenState extends State<ChatScreen> {
         _addMessageFromSocket(data);
       }
     });
+  }
+
+  void _ensureSocketConnected() {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final socketService = Provider.of<SocketService>(context, listen: false);
+    final token = authService.token;
+    if (token != null) {
+      socketService.connect(token);
+    }
   }
 
   void _addMessageFromSocket(dynamic data) {
