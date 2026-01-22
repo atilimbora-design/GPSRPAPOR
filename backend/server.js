@@ -366,11 +366,16 @@ app.get('/api/reports/user', authenticateToken, async (req, res) => {
 // User: İstatistikler (Günlük, Haftalık, Aylık)
 app.get('/api/stats/user', authenticateToken, async (req, res) => {
     try {
-        const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().split('T')[0];
-        // Pazartesiden başla
-        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1)).toISOString().split('T')[0];
-        const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+        const now = new Date();
+        const startOfDayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const day = now.getDay() === 0 ? 7 : now.getDay(); // Monday=1, Sunday=7
+        const startOfWeekDate = new Date(now);
+        startOfWeekDate.setDate(now.getDate() - day + 1);
+        const startOfMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const startOfDay = startOfDayDate.toISOString().split('T')[0];
+        const startOfWeek = startOfWeekDate.toISOString().split('T')[0];
+        const startOfMonth = startOfMonthDate.toISOString().split('T')[0];
 
         const reports = await Report.findAll({
             where: {
@@ -389,8 +394,9 @@ app.get('/api/stats/user', authenticateToken, async (req, res) => {
                 let col = r.collections;
                 if (typeof col === 'string') col = JSON.parse(col);
                 total += (parseFloat(col.cash) || 0);
+                total += (parseFloat(col.creditCard) || 0);
                 total += (parseFloat(col.check) || 0);
-                // Kredi kartı eklenebilir
+                total += (parseFloat(col.eft) || 0);
             }
 
             if (r.date >= startOfDay) daily += total;
