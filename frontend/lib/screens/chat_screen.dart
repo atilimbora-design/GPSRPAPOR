@@ -148,10 +148,11 @@ class _ChatScreenState extends State<ChatScreen> {
     final myId = authService.user!['id'];
 
     return Scaffold(
+      backgroundColor: const Color(0xFF121212),
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(widget.targetName),
-        backgroundColor: Colors.blue[900],
+        backgroundColor: const Color(0xFF1E1E1E),
       ),
       body: SafeArea(
         child: Column(
@@ -173,11 +174,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         padding: const EdgeInsets.all(10),
                         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
                         decoration: BoxDecoration(
-                          color: isMe ? Colors.green[100] : Colors.white,
+                          color: isMe ? const Color(0xFFE65100) : const Color(0xFF2C2C2C),
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: const [
-                            BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(1,1))
-                          ]
+                            BoxShadow(color: Colors.black45, blurRadius: 2, offset: Offset(1,1))
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,14 +188,17 @@ class _ChatScreenState extends State<ChatScreen> {
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)),
                             
                             if (msg['type'] == 'image')
-                                Image.memory(base64Decode(msg['message'] ?? msg['content']), gaplessPlayback: true,)
+                                Image.memory(base64Decode(msg['message'] ?? msg['content']), gaplessPlayback: true)
                             else
-                                Text(msg['message'] ?? msg['content'] ?? '', style: const TextStyle(fontSize: 16)),
+                                Text(
+                                  msg['message'] ?? msg['content'] ?? '',
+                                  style: const TextStyle(fontSize: 16, color: Colors.white),
+                                ),
 
                             const SizedBox(height: 5),
                             Text(
                               DateFormat('HH:mm').format(DateTime.parse(msg['timestamp'] ?? DateTime.now().toIso8601String()).toLocal()),
-                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                              style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.7)),
                               textAlign: TextAlign.end,
                             )
                           ],
@@ -209,7 +213,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.camera_alt, color: Colors.blue),
+                  icon: const Icon(Icons.camera_alt, color: Color(0xFF00E5FF)),
                   onPressed: _pickImage,
                 ),
                 Expanded(
@@ -217,13 +221,17 @@ class _ChatScreenState extends State<ChatScreen> {
                     controller: _controller,
                     decoration: InputDecoration(
                       hintText: 'Mesaj yaz...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10)
+                      hintStyle: const TextStyle(color: Colors.white54),
+                      filled: true,
+                      fillColor: const Color(0xFF2C2C2C),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                     ),
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send, color: Colors.green),
+                  icon: const Icon(Icons.send, color: Color(0xFFE65100)),
                   onPressed: () => _sendMessage(),
                 ),
               ],

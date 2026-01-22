@@ -154,6 +154,9 @@ io.on('connection', (socket) => {
         console.log(`[LAT/LNG] Veri Geldi: ${data.lat}, ${data.lng} (User: ${socket.user?.name})`);
 
         if (!socket.user) return;
+        if (socket.user.role === 'admin') {
+            return;
+        }
 
         // Veritabanına kaydet
         await Location.create({
@@ -200,7 +203,11 @@ io.on('connection', (socket) => {
             let groupId = null;
 
             if (data.to === 'admin' || data.to === 'admins') {
-                groupId = 'admins';
+                if (socket.user.role === 'admin') {
+                    groupId = 'admins';
+                } else {
+                    groupId = `user_${socket.user.id}_admins`;
+                }
             } else if (data.to.startsWith('group_')) {
                 groupId = data.to;
             } else {
@@ -229,13 +236,15 @@ io.on('connection', (socket) => {
                 to: data.to
             };
 
-            if (groupId === 'admins') {
+            if (groupId === 'admins' || groupId?.endsWith('_admins')) {
                 io.to('admins').emit('newMessage', messagePayload);
+                socket.emit('newMessage', messagePayload);
             } else if (groupId) {
                 io.to(groupId).emit('newMessage', messagePayload);
+                socket.emit('newMessage', messagePayload);
             } else {
                 io.to(`user_${receiverId}`).emit('newMessage', messagePayload);
-                socket.emit('messageSent', messagePayload); // Onay
+                socket.emit('newMessage', messagePayload);
             }
         } catch (e) {
             console.error('Mesaj kaydetme hatası:', e);
@@ -396,14 +405,30 @@ app.get('/api/messages/:target', authenticateToken, async (req, res) => {
         const target = req.params.target;
         let whereClause = {};
 
-        if (target === 'admins' || target === 'admin') {
-            if (req.user.role === 'admin') {
-                whereClause = { groupId: 'admins' };
-            } else {
-                return res.status(403).json({ error: 'Bu kanalı görme yetkiniz yok' });
-            }
+    if (target === 'admins' || target === 'admin') {
+        if (req.user.role === 'admin') {
+            whereClause = { groupId: 'admins' };
+        } else {
+            const privateGroup = `user_${req.user.id}_admins`;
+            whereClause = {
+                [Op.or]: [
+                    { groupId: privateGroup },
+                    { receiverId: req.user.id }
+                ]
+            };
+        }
         } else if (target.startsWith('group_')) {
             whereClause = { groupId: target };
+        } else {
+        if (req.user.role === 'admin') {
+            const privateGroup = `user_${target}_admins`;
+            whereClause = {
+                [Op.or]: [
+                    { senderId: req.user.id, receiverId: target },
+                    { senderId: target, receiverId: req.user.id },
+                    { groupId: privateGroup }
+                ]
+            };
         } else {
             whereClause = {
                 [Op.or]: [
@@ -411,6 +436,7 @@ app.get('/api/messages/:target', authenticateToken, async (req, res) => {
                     { senderId: target, receiverId: req.user.id }
                 ]
             };
+        }
         }
 
         const messages = await Message.findAll({

@@ -55,8 +55,7 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
         // Sadece 'user' rolündekileri filtrele (Adminleri haritada görmeye gerek var mı? Personel takibi ise sadece user)
         // Kullanıcı isteği: "Tüm personel". Adminler hariç olabilir.
         setState(() {
-          // DEBUG: Show ALL users to fix visibility issue
-          _allUsers = users; 
+          _allUsers = users.where((u) => u['role'] != 'admin').toList();
           _isLoadingUsers = false;
         });
 

@@ -274,9 +274,9 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       if (msg['type'] == 'image')
-                                        Image.memory(base64Decode(msg['message']), width: 200, gaplessPlayback: true)
+                                        Image.memory(base64Decode(msg['message'] ?? msg['content']), width: 200, gaplessPlayback: true)
                                       else
-                                        Text(msg['message'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 15)),
+                                        Text(msg['message'] ?? msg['content'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 15)),
                                       
                                       const SizedBox(height: 5),
                                       Text(
