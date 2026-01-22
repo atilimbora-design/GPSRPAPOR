@@ -79,22 +79,29 @@ class _ReportScreenState extends State<ReportScreen> {
     // 3. Kırpma İşlemi (Crop)
     CroppedFile? croppedFile = await ImageCropper().cropImage(
       sourcePath: image.path,
-      aspectRatioPresets: [
-        CropAspectRatioPreset.original,
-        CropAspectRatioPreset.square,
-        CropAspectRatioPreset.ratio3x2,
-        CropAspectRatioPreset.ratio4x3,
-        CropAspectRatioPreset.ratio16x9
-      ],
       uiSettings: [
         AndroidUiSettings(
             toolbarTitle: 'Fişi Düzenle',
             toolbarColor: const Color(0xFFE65100),
             toolbarWidgetColor: Colors.white,
             initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: false),
+            lockAspectRatio: false,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.original,
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9
+            ]),
         IOSUiSettings(
           title: 'Fişi Düzenle',
+          aspectRatioPresets: [
+            CropAspectRatioPreset.original,
+            CropAspectRatioPreset.square,
+            CropAspectRatioPreset.ratio3x2,
+            CropAspectRatioPreset.ratio4x3,
+            CropAspectRatioPreset.ratio16x9
+          ],
         ),
       ],
     );

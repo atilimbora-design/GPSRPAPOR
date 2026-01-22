@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,13 +13,18 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  bool _rememberMe = false;
+  String? _savedName;
+  bool _isWelcomeMode = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _checkRememberedUser();
+    
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -28,6 +34,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       curve: Curves.easeIn,
     ));
     _animationController.forward();
+  }
+
+  Future<void> _checkRememberedUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedUsername = prefs.getString('saved_username');
+    final savedName = prefs.getString('saved_name');
+    
+    if (savedUsername != null && savedName != null) {
+      setState(() {
+        _usernameController.text = savedUsername;
+        _savedName = savedName;
+        _isWelcomeMode = true;
+        _rememberMe = true;
+      });
+    }
+  }
+
+  Future<void> _clearRememberedUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('saved_username');
+    await prefs.remove('saved_name');
+    setState(() {
+      _usernameController.clear();
+      _passwordController.clear();
+      _savedName = null;
+      _isWelcomeMode = false;
+      _rememberMe = false;
+    });
   }
 
   @override
@@ -49,7 +83,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
           ),
         ),
-        child: Center(
+        child: SafeArea(
+          child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: FadeTransition(
@@ -72,29 +107,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.location_on_outlined,
-                      size: 60,
-                      color: Color(0xFFE65100),
-                    ),
+                    child: _isWelcomeMode 
+                      ? const Icon(Icons.account_circle, size: 80, color: Colors.orange) // Profil fotosu gelince burası değişecek
+                      : const Icon(Icons.location_on_outlined, size: 60, color: Color(0xFFE65100)),
                   ),
                   const SizedBox(height: 30),
-                  const Text(
-                    'GPS RAPOR',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                      color: Colors.white,
+                  
+                  if (_isWelcomeMode) ...[
+                     Text(
+                      'Hoş Geldin,',
+                      style: TextStyle(fontSize: 18, color: Colors.white70),
                     ),
-                  ),
-                  const Text(
-                    'Saha Yönetim Sistemi',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white70,
+                    Text(
+                      _savedName ?? '',
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
-                  ),
+                  ] else ...[
+                    const Text(
+                      'GPS RAPOR',
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.white),
+                    ),
+                    const Text(
+                      'Saha Yönetim Sistemi',
+                      style: TextStyle(fontSize: 16, color: Colors.white70),
+                    ),
+                  ],
+
                   const SizedBox(height: 50),
                   
                   // Login Formu
@@ -107,24 +145,27 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: Colors.white.withOpacity(0.2)),
                         boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 15,
-                          ),
+                          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 15),
                         ],
                       ),
                       child: Column(
                         children: [
-                          TextField(
-                            controller: _usernameController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Personel ID (örn: 01) veya Admin',
-                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                              prefixIcon: const Icon(Icons.person_outline, color: Color(0xFFE65100)),
+                          if (!_isWelcomeMode)
+                            TextField(
+                              controller: _usernameController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                hintText: 'Personel ID (örn: 01) veya Admin',
+                                hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                                prefixIcon: const Icon(Icons.person_outline, color: Color(0xFFE65100)),
+                                filled: true,
+                                fillColor: Colors.black12,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
+                          
+                          if (!_isWelcomeMode) const SizedBox(height: 20),
+                          
                           TextField(
                             controller: _passwordController,
                             obscureText: true,
@@ -133,32 +174,64 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               hintText: 'Şifre',
                               hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                               prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFFE65100)),
+                              filled: true,
+                              fillColor: Colors.black12,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                             ),
                           ),
-                          const SizedBox(height: 30),
+                          
+                          const SizedBox(height: 15),
+                          
+                          if (!_isWelcomeMode)
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: _rememberMe, 
+                                  activeColor: Colors.orange,
+                                  onChanged: (val) => setState(() => _rememberMe = val ?? false)
+                                ),
+                                const Text('Beni Hatırla', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+
+                          const SizedBox(height: 20),
+                          
                           SizedBox(
                             width: double.infinity,
+                            height: 50,
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFE65100),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
                               child: _isLoading
                                   ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text('GİRİŞ YAP'),
+                                  : const Text('GİRİŞ YAP', style: TextStyle( fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
+                  
+                  if (_isWelcomeMode)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: TextButton(
+                        onPressed: _clearRememberedUser,
+                        child: const Text('Başka hesapla giriş yap', style: TextStyle(color: Colors.orangeAccent)),
+                      ),
+                    ),
+
                   const SizedBox(height: 30),
-                  const Text(
-                    '© 2026 Atılım Gıda',
-                    style: TextStyle(color: Colors.white30, fontSize: 12),
-                  ),
+                  const Text('© 2026 Atılım Gıda', style: TextStyle(color: Colors.white30, fontSize: 12)),
                 ],
               ),
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -170,9 +243,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final password = _passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen tüm alanları doldurun')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lütfen şifrenizi girin')));
       setState(() => _isLoading = false);
       return;
     }
@@ -182,6 +253,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (success) {
         if (mounted) {
            final user = Provider.of<AuthService>(context, listen: false).user;
+           
+           // Hatırla Logic
+           final prefs = await SharedPreferences.getInstance();
+           if (_rememberMe && user != null) {
+             await prefs.setString('saved_username', username);
+             await prefs.setString('saved_name', user['name'] ?? 'Kullanıcı');
+           } else if (!_rememberMe) {
+             await _clearRememberedUser();
+           }
+
            if (user != null && user['role'] == 'admin') {
              Navigator.pushReplacementNamed(context, '/admin-dashboard');
            } else {
@@ -190,16 +271,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Giriş başarısız. Bilgileri kontrol edin.')),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Giriş başarısız. Şifreyi kontrol edin.')));
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

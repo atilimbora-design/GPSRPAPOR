@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:battery_plus/battery_plus.dart';
 import 'auth_service.dart';
 
 // Arka plan servisi başlatma fonksiyonu
@@ -73,25 +74,31 @@ void onStart(ServiceInstance service) async {
     socket.emit('authenticate', token);
   });
 
-  // Konum Takibi
-  Timer.periodic(const Duration(seconds: 10), (timer) async {
+  final Battery battery = Battery();
+
+  // Konum Takibi (20 saniye aralıkla) - Kullanıcı isteği
+  Timer.periodic(const Duration(seconds: 20), (timer) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
         service.setForegroundNotificationInfo(
           title: "GPS Rapor Aktif",
-          content: "Konum gönderildi: ${DateTime.now().hour}:${DateTime.now().minute}",
+          content: "Güncellendi: ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}",
         );
       }
     }
 
     try {
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      int batteryLevel = await battery.batteryLevel;
       
-      print('Konum: ${position.latitude}, ${position.longitude}');
+      print('Konum: ${position.latitude}, ${position.longitude}, Hız: ${position.speed}, Pil: $batteryLevel');
       
       socket.emit('updateLocation', {
-        'latitude': position.latitude,
-        'longitude': position.longitude
+        'lat': position.latitude,
+        'lng': position.longitude,
+        'speed': position.speed * 3.6, // m/s -> km/h
+        'battery': batteryLevel,
+        'timestamp': DateTime.now().toIso8601String()
       });
       
     } catch (e) {

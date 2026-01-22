@@ -23,6 +23,11 @@ const User = sequelize.define('User', {
         unique: true,
         allowNull: false
     },
+    username: {
+        type: DataTypes.STRING,
+        unique: true,
+        allowNull: false
+    },
     name: {
         type: DataTypes.STRING,
         allowNull: false
@@ -34,7 +39,16 @@ const User = sequelize.define('User', {
     role: {
         type: DataTypes.ENUM('admin', 'user'),
         defaultValue: 'user'
-    }
+    },
+    avatar: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    lastLat: { type: DataTypes.FLOAT, allowNull: true },
+    lastLng: { type: DataTypes.FLOAT, allowNull: true },
+    speed: { type: DataTypes.FLOAT, allowNull: true },
+    battery: { type: DataTypes.INTEGER, allowNull: true },
+    lastSeen: { type: DataTypes.DATE, allowNull: true }
 });
 
 const Report = sequelize.define('Report', {
@@ -53,8 +67,16 @@ const Report = sequelize.define('Report', {
 });
 
 const Location = sequelize.define('Location', {
-    latitude: DataTypes.FLOAT,
-    longitude: DataTypes.FLOAT,
+    lat: DataTypes.FLOAT,
+    lng: DataTypes.FLOAT,
+    speed: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0
+    },
+    battery: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+    },
     timestamp: DataTypes.DATE
 });
 

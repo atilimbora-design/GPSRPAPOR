@@ -11,6 +11,7 @@ import 'chat_screen.dart';
 import 'report_screen.dart';
 import 'user_reports_screen.dart';
 import 'admin_map_screen.dart';
+import 'account_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,8 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
       // Arka plan izni (Android 10+)
       // Kullanıcıdan "Her zaman izin ver" seçmesini istemek gerekebilir
       await Permission.locationAlways.request();
-      // GPS Servisini Başlat (Sadece Mobil)
-      if (!kIsWeb) {
+      // GPS Servisini Başlat (Sadece Mobil ve Admin Değilse)
+      final user = Provider.of<AuthService>(context, listen: false).user;
+      if (!kIsWeb && user?['role'] != 'admin') {
         await initializeService();
       }
     }
@@ -110,8 +112,9 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -133,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 10),
                   _isLoadingStats 
                    ? const CircularProgressIndicator(color: Colors.white)
-                   : Text('₺ ${(_stats['totalCollection'] ?? 0).toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                   : Text('₺ ${(_stats['weekly'] ?? 0).toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -180,7 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.person, 
                   title: 'Hesabım', 
                   color: const Color(0xFFFFD740),
-                  onTap: () {}
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountScreen()));
+                  }
                 ),
                 _buildMenuCard(
                   icon: Icons.analytics, 
@@ -206,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
              // Ancak user chat istiyor, alt tarafa bir chat alanı ekleyelim.
           ],
         ),
+      ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

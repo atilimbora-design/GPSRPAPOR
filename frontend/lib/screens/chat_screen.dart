@@ -59,13 +59,14 @@ class _ChatScreenState extends State<ChatScreen> {
     
     bool shouldAdd = false;
     
-    if (widget.targetId == 'admin' && (data['to'] == 'admin' || data['to'] == 'admins')) { // Adjusted for server logic 'admins' group
-       shouldAdd = true;
+    if (widget.targetId == 'admin') {
+       if (data['to'] == 'admin' || data['to'] == 'admins') shouldAdd = true;
+       if (data['to'].toString() == myId) shouldAdd = true; // Admin sent to me
     } else if (widget.targetId.startsWith('group_') && data['to'] == widget.targetId) {
        shouldAdd = true;
     } else if (data['from'].toString() == widget.targetId) {
        shouldAdd = true;
-    } else if (data['from'].toString() == myId && (data['to'].toString() == widget.targetId || (widget.targetId=='admin' && data['to']=='admin'))) {
+    } else if (data['from'].toString() == myId && (data['to'].toString() == widget.targetId)) {
        shouldAdd = true;
     }
 
@@ -148,11 +149,13 @@ class _ChatScreenState extends State<ChatScreen> {
     final myId = authService.user!['id'];
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(widget.targetName),
         backgroundColor: Colors.blue[900],
       ),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
           Expanded(
             child: _isLoading 
@@ -228,6 +231,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           )
         ],
+      ),
       ),
     );
   }

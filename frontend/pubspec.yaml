@@ -41,7 +41,8 @@ dependencies:
   flutter_background_service: ^5.1.0
   shared_preferences: ^2.5.3
   image_picker: ^1.1.2
-  image_cropper: ^5.0.1
+  image_cropper: ^8.0.2
+  battery_plus: ^6.2.1
   provider: ^6.1.5+1
   intl: ^0.20.2
   path_provider: ^2.1.5

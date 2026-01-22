@@ -21,6 +21,8 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Uploads klasörünü dışarı aç (Resim ve PDF'ler için)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const SECRET_KEY = 'gps_rapor_secret_key_change_this';
 
@@ -57,42 +59,114 @@ app.post('/login', async (req, res) => {
     res.json({ token, user: { id: user.id, name: user.name, role: user.role, code: user.personelCode } });
 });
 
+// Admin: Kullanıcı Listesi Getir
+app.get('/api/users', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+    try {
+        const users = await User.findAll({
+            attributes: ['id', 'personelCode', 'name', 'role', 'avatar']
+        });
+        res.json(users);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Kullanıcı Avatar Yükleme API
+app.post('/api/users/avatar', authenticateToken, async (req, res) => {
+    try {
+        const { imageBase64 } = req.body;
+        if (!imageBase64) return res.status(400).json({ error: 'Resim verisi yok' });
+
+        // Klasör oluştur
+        const avatarDir = path.join(__dirname, 'uploads', 'avatars');
+        if (!fs.existsSync(avatarDir)) {
+            fs.mkdirSync(avatarDir, { recursive: true });
+        }
+
+        // Dosyayı kaydet
+        const fileName = `avatar_${req.user.id}_${Date.now()}.jpg`;
+        const filePath = path.join(avatarDir, fileName);
+        fs.writeFileSync(filePath, Buffer.from(imageBase64, 'base64'));
+
+        // URL oluştur (localhost veya domain)
+        // Şimdilik upload path'ini static sunuyoruz
+        const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${fileName}`;
+
+        // DB güncelle
+        await User.update({ avatar: avatarUrl }, { where: { id: req.user.id } });
+
+        res.json({ success: true, avatarUrl });
+    } catch (e) {
+        console.error('Avatar yükleme hatası:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Socket.io Bağlantısı
 io.on('connection', (socket) => {
     console.log('Bir kullanıcı bağlandı:', socket.id);
 
     // Kimlik doğrulama için token bekle
-    socket.on('authenticate', (token) => {
+    // Kimlik doğrulama için token bekle
+    socket.on('authenticate', async (token) => {
         try {
-            const user = jwt.verify(token, SECRET_KEY);
-            socket.user = user;
-            socket.join(user.role === 'admin' ? 'admins' : `user_${user.id}`);
-            console.log(`${user.name} authenticated.`);
+            const decoded = jwt.verify(token, SECRET_KEY);
+            // Veritabanından güncel rolü çek
+            const dbUser = await User.findByPk(decoded.id);
+
+            if (dbUser) {
+                const user = { ...decoded, role: dbUser.role }; // Rolü güncelle
+                socket.user = user;
+                const room = user.role === 'admin' ? 'admins' : `user_${user.id}`;
+                socket.join(room);
+                console.log(`${user.name} authenticated. Role: ${user.role} (Updated) Room: ${room}`);
+            } else {
+                console.log('User not found in DB');
+            }
+
         } catch (e) {
-            console.log('Socket auth failed');
+            console.log('Socket auth failed', e);
         }
     });
 
     // Konum Güncellemesi (Her 10 saniyede bir gelecek)
     socket.on('updateLocation', async (data) => {
+        console.log(`[LAT/LNG] Veri Geldi: ${data.lat}, ${data.lng} (User: ${socket.user?.name})`);
+
         if (!socket.user) return;
 
         // Veritabanına kaydet
         await Location.create({
             UserId: socket.user.id,
-            latitude: data.latitude,
-            longitude: data.longitude,
+            lat: data.lat,
+            lng: data.lng,
+            speed: data.speed,
+            battery: data.battery,
             timestamp: new Date()
         });
 
-        // Adminlere ilet
-        io.to('admins').emit('locationUpdate', {
+        // 2. User tablosunu güncelle (Son Konum)
+        await User.update({
+            lastLat: data.lat,
+            lastLng: data.lng,
+            speed: data.speed,
+            battery: data.battery,
+            lastSeen: new Date()
+        }, { where: { id: socket.user.id } });
+
+        // Tüm istemcilere (adminlere) konum güncellemesini bildir
+        // Avatar bilgisini de ekliyoruz
+        io.emit('locationUpdate', {
+            id: socket.user.id,
             userId: socket.user.id,
+            lat: data.lat,
+            lng: data.lng,
+            speed: data.speed,
+            battery: data.battery,
+            timestamp: new Date(),
             name: socket.user.name,
-            code: socket.user.code,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            timestamp: new Date()
+            avatar: socket.user.avatar // Avatar eklendi
         });
     });
 
@@ -255,35 +329,42 @@ app.get('/api/reports/user', authenticateToken, async (req, res) => {
     }
 });
 
-// User: İstatistikler (Haftalık Tahsilat vb.)
+// User: İstatistikler (Günlük, Haftalık, Aylık)
 app.get('/api/stats/user', authenticateToken, async (req, res) => {
     try {
-        // Bu haftanın başlangıcı
         const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString().split('T')[0];
+        // Pazartesiden başla
         const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 1)).toISOString().split('T')[0];
+        const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
-        // Basitçe bu haftaki raporları çekip toplayalım
         const reports = await Report.findAll({
             where: {
                 UserId: req.user.id,
-                date: { [Op.gte]: startOfWeek }
+                date: { [Op.gte]: startOfMonth } // En eski tarih (Ay başı)
             }
         });
 
-        let totalCash = 0;
+        let daily = 0;
+        let weekly = 0;
+        let monthly = 0;
+
         reports.forEach(r => {
+            let total = 0;
             if (r.collections) {
-                // collections bir JSON string olabilir veya obje
                 let col = r.collections;
                 if (typeof col === 'string') col = JSON.parse(col);
-
-                totalCash += (parseFloat(col.cash) || 0);
-                totalCash += (parseFloat(col.check) || 0); // Çek dahil mi? Tahsilat genel
-                // Sadece nakit mi? Kullanıcı "Haftalık Tahsilat" dedi.
+                total += (parseFloat(col.cash) || 0);
+                total += (parseFloat(col.check) || 0);
+                // Kredi kartı eklenebilir
             }
+
+            if (r.date >= startOfDay) daily += total;
+            if (r.date >= startOfWeek) weekly += total;
+            monthly += total;
         });
 
-        res.json({ totalCollection: totalCash, weekStart: startOfWeek });
+        res.json({ daily, weekly, monthly });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -330,7 +411,12 @@ server.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
 
     // Veritabanı tablolarını güncelle (Veri kaybı olmadan)
-    await sequelize.sync({ alter: true });
+    // Veritabanı tablolarını güncelle (Veri kaybı olmadan)
+    try {
+        await sequelize.sync(); // alter: true riskli, kaldirdim
+    } catch (e) {
+        console.error('DB Sync Error (Ignored):', e.message);
+    }
 
     // İlk çalıştırmada DB'yi seed etmek için kontrol
     const userCount = await User.count();

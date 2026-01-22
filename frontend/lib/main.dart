@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/auth_service.dart';
 import 'services/socket_service.dart';
 
@@ -25,18 +26,19 @@ void main() async {
     WindowOptions windowOptions = const WindowOptions(
       size: Size(1920, 1080),
       center: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.black, 
       skipTaskbar: false,
       title: 'GPS RAPOR',
-      // fullScreen: true, // İsteğe bağlı
-      maximumSize: Size(1920, 1080),
+      // fullScreen: true, // REMOVED: Causes taskbar issues on init
       minimumSize: Size(1280, 720),
     );
     
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
-      // await windowManager.setResizable(false); // Kullanıcı boyut değiştiremesin
+      await windowManager.setSkipTaskbar(false);
+      await windowManager.maximize(); // Use Maximize instead of FullScreen prevents freezing
+      // await windowManager.setFullScreen(true); // Can cause freeze on startup
     });
   }
   // Status bar rengini ayarla (Transparent)
@@ -101,7 +103,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/login',
+      home: const SplashScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),

@@ -6,6 +6,9 @@ import 'admin_map_screen.dart';
 import 'admin_reports_screen.dart';
 import 'admin_users_screen.dart';
 import 'login_screen.dart';
+import 'admin_chat_panel_screen.dart';
+
+import '../services/socket_service.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -17,11 +20,28 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _selectedIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _connectSocket();
+  }
+
+  Future<void> _connectSocket() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final socketService = Provider.of<SocketService>(context, listen: false);
+    
+    final token = authService.token;
+    if (token != null) {
+      socketService.connect(token);
+    }
+  }
+
   // Sayfalar
   final List<Widget> _pages = [
     const AdminMapScreen(), // Mevcut harita ekranı
     const AdminReportsScreen(),
     const AdminUsersScreen(),
+    const AdminChatPanelScreen(),
   ];
 
   @override
@@ -94,11 +114,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _buildMenuItem(0, Icons.map, 'Canlı Harita'),
         _buildMenuItem(1, Icons.assignment, 'Raporlar & Finans'),
         _buildMenuItem(2, Icons.people, 'Personel Yönetimi'),
+        _buildMenuItem(3, Icons.chat, 'Mesajlar'),
         
         const Spacer(),
         
+        // Pencere Modu / Tam Ekran Çıkış
+        InkWell(
+          onTap: () async {
+            await windowManager.setFullScreen(false);
+            await windowManager.setSkipTaskbar(false); // Ensure taskbar
+            await windowManager.setSize(const Size(1280, 800));
+            await windowManager.center();
+          },
+          child: Container(
+             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+             child: const Row(
+               children: [
+                 Icon(Icons.fullscreen_exit, color: Colors.white70),
+                 SizedBox(width: 15),
+                 Text('Pencere Modu', style: TextStyle(color: Colors.white70)),
+               ],
+             ),
+          ),
+        ),
+
         // Çıkış Butonu
-        _buildMenuItem(3, Icons.exit_to_app, 'Çıkış Yap', isLogout: true),
+        _buildMenuItem(4, Icons.exit_to_app, 'Çıkış Yap', isLogout: true),
         const SizedBox(height: 20),
       ],
     );
