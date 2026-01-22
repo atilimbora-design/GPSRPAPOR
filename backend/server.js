@@ -154,6 +154,7 @@ io.on('connection', (socket) => {
         console.log(`[LAT/LNG] Veri Geldi: ${data.lat}, ${data.lng} (User: ${socket.user?.name})`);
 
         if (!socket.user) return;
+        if (socket.user.role === 'admin') return;
         if (socket.user.role === 'admin') {
             return;
         }
@@ -212,6 +213,9 @@ io.on('connection', (socket) => {
                 groupId = data.to;
             } else {
                 receiverId = data.to;
+                if (socket.user.role === 'admin') {
+                    groupId = `user_${receiverId}_admins`;
+                }
             }
 
             // DB'ye Kaydet
@@ -238,6 +242,7 @@ io.on('connection', (socket) => {
 
             if (groupId === 'admins' || groupId?.endsWith('_admins')) {
                 io.to('admins').emit('newMessage', messagePayload);
+                if (receiverId) io.to(`user_${receiverId}`).emit('newMessage', messagePayload);
                 socket.emit('newMessage', messagePayload);
             } else if (groupId) {
                 io.to(groupId).emit('newMessage', messagePayload);

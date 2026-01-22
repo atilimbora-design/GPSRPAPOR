@@ -109,8 +109,71 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
     }
   }
 
+  bool _isOnlineFromTimestamp(String? timestamp) {
+    final date = DateTime.tryParse(timestamp ?? '');
+    if (date == null) return false;
+    return DateTime.now().difference(date).inMinutes < 5;
+  }
+
+  List<dynamic> _sortedUsers() {
+    final users = List<dynamic>.from(_allUsers);
+    users.sort((a, b) {
+      final aLoc = _userLocations[a['id']];
+      final bLoc = _userLocations[b['id']];
+      final aOnline = _isOnlineFromTimestamp(aLoc?['timestamp'] ?? a['lastSeen']);
+      final bOnline = _isOnlineFromTimestamp(bLoc?['timestamp'] ?? b['lastSeen']);
+      if (aOnline != bOnline) return aOnline ? -1 : 1;
+      return (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString());
+    });
+    return users;
+  }
+
+  Widget _buildAvatarWithId({
+    required String id,
+    String? avatarUrl,
+    double size = 40,
+  }) {
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        CircleAvatar(
+          radius: size / 2,
+          backgroundColor: const Color(0xFF2C2C2C),
+          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl == null
+              ? const Icon(Icons.person, color: Colors.white70)
+              : null,
+        ),
+        Positioned(
+          bottom: -2,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              id,
+              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatLastSeen(dynamic lastSeen) {
+    final parsed = DateTime.tryParse(lastSeen?.toString() ?? '');
+    if (parsed == null) return 'Veri yok / Offline';
+    final local = parsed.toLocal();
+    final hh = local.hour.toString().padLeft(2, '0');
+    final mm = local.minute.toString().padLeft(2, '0');
+    return 'Son görüldü: ${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} $hh:$mm';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final sortedUsers = _sortedUsers();
     return Scaffold(
       body: Column(
         children: [
@@ -137,11 +200,7 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                         final avatarUrl = loc['avatar'] ?? fullUser['avatar'];
                         
                         // Timestamp check for online status color
-                        bool isOnline = false;
-                        final date = DateTime.tryParse(loc['timestamp'] ?? '');
-                        if (date != null) {
-                           isOnline = DateTime.now().difference(date).inMinutes < 5;
-                        }
+                        bool isOnline = _isOnlineFromTimestamp(loc['timestamp']);
 
                         return Marker(
                           key: Key(userId.toString()),
@@ -162,11 +221,10 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                                     ),
                                     boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)]
                                   ),
-                                  child: CircleAvatar(
-                                    radius: 20,
-                                    backgroundColor: const Color(0xFFE65100),
-                                    backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                                    child: avatarUrl == null ? const Icon(Icons.person, color: Colors.white, size: 24) : null,
+                                  child: _buildAvatarWithId(
+                                    id: fullUser['personelCode']?.toString() ?? '',
+                                    avatarUrl: avatarUrl,
+                                    size: 40,
                                   ),
                                 ),
                                 // İsim Etiketi
@@ -260,29 +318,23 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                   child: _isLoadingUsers 
                     ? const Center(child: CircularProgressIndicator())
                     : ListView.builder(
-                        itemCount: _allUsers.length,
+                        itemCount: sortedUsers.length,
                         itemBuilder: (context, index) {
-                          final user = _allUsers[index];
+                          final user = sortedUsers[index];
                           final userId = user['id'];
                           final loc = _userLocations[userId]; // Canlı veri
                           
                           // Online kontrolü
-                          bool isOnline = false;
-                          if (loc != null) {
-                             final ts = DateTime.tryParse(loc['timestamp'] ?? '');
-                             if (ts != null) {
-                               isOnline = DateTime.now().difference(ts).inMinutes < 5;
-                             }
-                          }
+                          final isOnline = _isOnlineFromTimestamp(loc?['timestamp'] ?? user['lastSeen']);
 
                           return ListTile(
                             onTap: () => _centerOnUser(userId),
                             leading: Stack(
                               children: [
-                                CircleAvatar(
-                                  backgroundColor: Colors.grey,
-                                  backgroundImage: user['avatar'] != null ? NetworkImage(user['avatar']) : null,
-                                  child: user['avatar'] == null ? const Icon(Icons.person, color: Colors.white) : null,
+                                _buildAvatarWithId(
+                                  id: user['personelCode']?.toString() ?? '',
+                                  avatarUrl: user['avatar'],
+                                  size: 40,
                                 ),
                                 Positioned(
                                   bottom: 0,
@@ -308,7 +360,10 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                                       Text('${(loc['speed'] ?? 0).toStringAsFixed(1)} km/h', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                     ],
                                   )
-                                : const Text('Veri yok / Offline', style: TextStyle(color: Colors.white24, fontSize: 12)),
+                                : Text(
+                                    _formatLastSeen(user['lastSeen']),
+                                    style: const TextStyle(color: Colors.white24, fontSize: 12),
+                                  ),
                             trailing: IconButton(
                               icon: const Icon(Icons.chat_bubble_outline, color: Colors.blueAccent),
                               onPressed: () {

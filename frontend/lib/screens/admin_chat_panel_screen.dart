@@ -137,18 +137,7 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
       'type': 'text'
     });
 
-    // Optimistik Ekleme
-    setState(() {
-      _messages.add({
-        'from': 'admin', 
-        'to': _selectedUserId,
-        'message': text,
-        'timestamp': DateTime.now().toIso8601String(),
-        'type': 'text'
-      });
-      _scrollToBottom();
-      _messageController.clear();
-    });
+    _messageController.clear();
   }
 
   void _scrollToBottom() {
@@ -161,6 +150,40 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
         );
       }
     });
+  }
+
+  Widget _buildAvatarWithId({
+    required String id,
+    String? avatarUrl,
+    double size = 40,
+  }) {
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        CircleAvatar(
+          radius: size / 2,
+          backgroundColor: const Color(0xFF2C2C2C),
+          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl == null
+              ? const Icon(Icons.person, color: Colors.white70)
+              : null,
+        ),
+        Positioned(
+          bottom: -2,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              id,
+              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -198,10 +221,10 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                         final isSelected = user['id'] == _selectedUserId;
                         return ListTile(
                           tileColor: isSelected ? const Color(0xFFE65100).withOpacity(0.3) : null,
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.grey,
-                            backgroundImage: user['avatar'] != null ? NetworkImage(user['avatar']) : null,
-                            child: user['avatar'] == null ? Text(user['personelCode'] ?? '?', style: const TextStyle(color: Colors.white)) : null,
+                          leading: _buildAvatarWithId(
+                            id: user['personelCode'] ?? '?',
+                            avatarUrl: user['avatar'],
+                            size: 42,
                           ),
                           title: Text(user['name'], style: const TextStyle(color: Colors.white)),
                           onTap: () => _selectUser(user['id'], user['name']),
@@ -227,10 +250,10 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                       color: const Color(0xFF1E1E1E),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            backgroundColor: const Color(0xFFE65100),
-                            backgroundImage: _users.firstWhere((u)=>u['id']==_selectedUserId)['avatar'] != null ? NetworkImage(_users.firstWhere((u)=>u['id']==_selectedUserId)['avatar']) : null,
-                            child: _users.firstWhere((u)=>u['id']==_selectedUserId)['avatar'] == null ? Text(_users.firstWhere((u)=>u['id']==_selectedUserId)['personelCode'], style: const TextStyle(color: Colors.white)) : null,
+                          _buildAvatarWithId(
+                            id: _users.firstWhere((u)=>u['id']==_selectedUserId)['personelCode'],
+                            avatarUrl: _users.firstWhere((u)=>u['id']==_selectedUserId)['avatar'],
+                            size: 46,
                           ),
                           const SizedBox(width: 15),
                           Text(_selectedUserName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),

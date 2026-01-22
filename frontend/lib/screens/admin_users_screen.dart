@@ -129,15 +129,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       color: Colors.white.withOpacity(0.05),
                       margin: const EdgeInsets.only(bottom: 10),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFFE65100).withOpacity(0.2),
-                          backgroundImage: user['avatar'] != null ? NetworkImage(user['avatar']) : null,
-                          child: user['avatar'] == null 
-                            ? Text(
-                                user['personelCode'] ?? '?',
-                                style: const TextStyle(color: Color(0xFFE65100)),
-                              )
-                            : null,
+                        leading: _buildAvatarWithId(
+                          id: user['personelCode'] ?? '?',
+                          avatarUrl: user['avatar'],
+                          size: 40,
                         ),
                         title: Text(
                           user['name'],
@@ -213,5 +208,39 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
          actions: [TextButton(onPressed: ()=>Navigator.pop(context), child: const Text('OK'))]
        )
      );
+  }
+
+  Widget _buildAvatarWithId({
+    required String id,
+    String? avatarUrl,
+    double size = 40,
+  }) {
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        CircleAvatar(
+          radius: size / 2,
+          backgroundColor: const Color(0xFF2C2C2C),
+          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl == null
+              ? const Icon(Icons.person, color: Colors.white70)
+              : null,
+        ),
+        Positioned(
+          bottom: -2,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              id,
+              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
