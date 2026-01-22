@@ -49,7 +49,8 @@ async function seed() {
                 personelCode: 'ADM_' + admin.username.toUpperCase(),
                 name: admin.name,
                 password: hash,
-                role: 'admin'
+                role: 'admin',
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(admin.name)}&background=2C3E50&color=fff&size=128`
             });
             console.log(`Admin ${admin.username} eklendi.`);
         }
@@ -61,7 +62,8 @@ async function seed() {
                 personelCode: u.id,
                 name: u.name,
                 password: hash,
-                role: 'user'
+                role: 'user',
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=example&color=fff&size=128`.replace('example', 'random')
             });
             console.log(`Personel ${u.id} - ${u.name} eklendi.`);
         }

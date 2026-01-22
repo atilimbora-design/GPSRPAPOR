@@ -45,10 +45,11 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
   
   Future<void> _fetchUsers() async {
     try {
-      // AuthService'deki baseUrl'i kullanıyoruz.
-      // DİKKAT: AuthService.baseUrl static ise direkt erişilir.
-      // Değilse Provider ile alınabilir ama static tanımlamıştık.
-      final response = await http.get(Uri.parse('${AuthService.baseUrl}/api/users'));
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final response = await http.get(
+        Uri.parse('${AuthService.baseUrl}/api/users'),
+        headers: {'Authorization': 'Bearer ${authService.token}'},
+      );
       if (response.statusCode == 200) {
         final List<dynamic> users = jsonDecode(response.body);
         // Sadece 'user' rolündekileri filtrele (Adminleri haritada görmeye gerek var mı? Personel takibi ise sadece user)
@@ -107,20 +108,6 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
         const SnackBar(content: Text('Bu kullanıcının aktif konumu yok.')),
       );
     }
-  }
-
-  bool _isOnline(dynamic user) {
-    // Location map'te var mı?
-    final userId = user['id'];
-    final loc = _userLocations[userId];
-    if (loc == null) return false;
-    
-    // Timestamp kontrolü (Son 5 dakika)
-    final timestamp = DateTime.tryParse(loc['timestamp'] ?? '');
-    if (timestamp == null) return false;
-    
-    final diff = DateTime.now().difference(timestamp);
-    return diff.inMinutes < 5;
   }
 
   @override
@@ -317,7 +304,7 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                             subtitle: loc != null 
                                 ? Row(
                                     children: [
-                                      Icon(Icons.speed, size: 14, color: Colors.orangeAccent),
+                                      const Icon(Icons.speed, size: 14, color: Colors.orangeAccent),
                                       const SizedBox(width: 4),
                                       Text('${(loc['speed'] ?? 0).toStringAsFixed(1)} km/h', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                     ],

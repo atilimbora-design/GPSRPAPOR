@@ -51,13 +51,7 @@ class _AccountScreenState extends State<AccountScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final newAvatarUrl = data['avatarUrl'];
-        
-        // Kullanıcı bilgisini güncelle (AuthService içinde method yoksa statik map'i güncellemeye çalışalım)
-        // AuthService'e updateUserAvatar gibi bir method eklemek en iyisi ama şimdilik manuel hack:
-        // authService.user ['avatar'] = newAvatarUrl; (Getter olduğu için değiştiremeyiz eğer setter yoksa)
-        
-        // AuthService kullanıcısı private _user ise ve setter yoksa, tekrar checkLogin yapabiliriz.
-        await authService.checkLoginStatus(); 
+        await authService.updateUserAvatar(newAvatarUrl);
 
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profil fotoğrafı güncellendi!')));

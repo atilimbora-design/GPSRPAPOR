@@ -78,15 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _requestPermissionsAndStartService() async {
-    // Konum İzni
-    await Permission.locationAlways.request();
-    await Permission.notification.request();
-
-    // Servisi Başlat
-    await initializeService();
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<AuthService>(context).user;
@@ -218,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
            Navigator.push(
             context,
             MaterialPageRoute(
-               builder: (context) => const ChatScreen(targetId: 'admin', targetName: 'Yönetici ile Sohbet')
+               builder: (context) => const ChatScreen(targetId: 'admins', targetName: 'Yönetici ile Sohbet')
             )
            );
         },

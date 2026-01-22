@@ -174,10 +174,19 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 color: const Color(0xFF2C2C2C),
-                width: double.infinity,
-                child: const Text('Mesajlar', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Mesajlar', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                        icon: const Icon(Icons.refresh, color: Colors.white70),
+                        onPressed: _fetchUsers,
+                        tooltip: 'Listeyi Yenile',
+                    ),
+                  ],
+                ),
               ),
               Expanded(
                 child: _isLoadingUsers 

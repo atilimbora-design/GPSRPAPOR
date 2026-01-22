@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     ),
                   ] else ...[
                     const Text(
-                      'GPS RAPOR',
+                      'GPS TEST',
                       style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.white),
                     ),
                     const Text(

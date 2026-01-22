@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:printing/printing.dart';
+import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
 class ReportDetailScreen extends StatelessWidget {
@@ -43,15 +46,11 @@ class ReportDetailScreen extends StatelessWidget {
 
             _buildSectionHeader('Giderler'),
             if (expenses['fuel'] != null)
-              _buildExpenseRow('Yakıt', expenses['fuel']['amount'], expenses['fuel']['description']),
-            if (expenses['food'] != null)
-              _buildExpenseRow('Yemek', expenses['food']['amount'], expenses['food']['description']),
-             if (expenses['hotel'] != null)
-              _buildExpenseRow('Otel', expenses['hotel']['amount'], expenses['hotel']['description']),
-             if (expenses['maintenance'] != null)
-              _buildExpenseRow('Tamir/Bakım', expenses['maintenance']['amount'], expenses['maintenance']['description']),
+              _buildExpenseRow('Yakıt', expenses['fuel']['amount'], expenses['fuel']['desc']),
+            if (expenses['maintenance'] != null)
+              _buildExpenseRow('Tamir/Bakım', expenses['maintenance']['amount'], expenses['maintenance']['desc']),
             if (expenses['other'] != null)
-              _buildExpenseRow('Diğer', expenses['other']['amount'], expenses['other']['description']),
+              _buildExpenseRow('Diğer', expenses['other']['amount'], expenses['other']['desc']),
              
              const Divider(),
              _buildSectionHeader('Teslimat'),
@@ -61,10 +60,8 @@ class ReportDetailScreen extends StatelessWidget {
              // PDF veya Resim Görüntüleme Butonları Eklenebilir
              if (report['pdfPath'] != null)
                ElevatedButton.icon(
-                 onPressed: () {
-                    // PDF Açma mantığı (url_launcher eklenecek)
-                 }, 
-                 icon: const Icon(Icons.picture_as_pdf), 
+                 onPressed: () => _viewPdf(context),
+                 icon: const Icon(Icons.picture_as_pdf),
                  label: const Text('PDF Görüntüle')
                ),
           ],
@@ -78,6 +75,33 @@ class ReportDetailScreen extends StatelessWidget {
       return jsonDecode(jsonStr);
     } catch (e) {
       return {};
+    }
+  }
+
+  Future<void> _viewPdf(BuildContext context) async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final reportId = report['id'];
+    if (reportId == null) return;
+
+    final url = Uri.parse('${AuthService.baseUrl}/api/reports/$reportId/pdf');
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer ${authService.token}'},
+      );
+
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+        await Printing.layoutPdf(onLayout: (_) => bytes);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF yüklenemedi: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('PDF hatası: $e')),
+      );
     }
   }
 

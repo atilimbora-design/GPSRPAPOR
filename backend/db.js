@@ -60,6 +60,7 @@ const Report = sequelize.define('Report', {
     collections: DataTypes.JSON, // { cash, creditCard, check, eft }
     cashDelivered: DataTypes.FLOAT,
     description: DataTypes.TEXT,
+    pdfPath: DataTypes.STRING,
     status: {
         type: DataTypes.ENUM('pending', 'approved', 'rejected'),
         defaultValue: 'pending'
@@ -143,6 +144,7 @@ async function seed() {
     // Admin oluştur
     await User.create({
         personelCode: 'admin',
+        username: 'admin',
         name: 'Yönetici',
         password: adminPassword,
         role: 'admin'
@@ -152,6 +154,7 @@ async function seed() {
     for (const p of personnelList) {
         await User.create({
             personelCode: p.code,
+            username: p.code,
             name: p.name,
             password: defaultPassword,
             role: 'user'

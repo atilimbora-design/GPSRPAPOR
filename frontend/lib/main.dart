@@ -28,7 +28,7 @@ void main() async {
       center: true,
       backgroundColor: Colors.black, 
       skipTaskbar: false,
-      title: 'GPS RAPOR',
+      title: 'GPS TEST',
       // fullScreen: true, // REMOVED: Causes taskbar issues on init
       minimumSize: Size(1280, 720),
     );

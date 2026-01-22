@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service.dart';
+import 'report_detail_screen.dart';
 
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
@@ -94,8 +95,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                   scrollDirection: Axis.horizontal,
                   child: SingleChildScrollView(
                     child: DataTable(
-                      headingRowColor: MaterialStateProperty.all(Colors.white.withOpacity(0.1)),
-                      dataRowColor: MaterialStateProperty.all(Colors.white.withOpacity(0.05)),
+                      headingRowColor: WidgetStateProperty.all(Colors.white.withOpacity(0.1)),
+                      dataRowColor: WidgetStateProperty.all(Colors.white.withOpacity(0.05)),
                       columns: const [
                         DataColumn(label: Text('Tarih', style: TextStyle(color: Colors.white70))),
                         DataColumn(label: Text('Personel', style: TextStyle(color: Colors.white70))),
@@ -117,7 +118,12 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                           DataCell(IconButton(
                             icon: const Icon(Icons.visibility, color: Colors.blue),
                             onPressed: () {
-                              // Detay
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ReportDetailScreen(report: report),
+                                ),
+                              );
                             },
                           )),
                         ]);

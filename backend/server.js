@@ -4,10 +4,12 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const { sequelize, User, Location, Report, Message, seed } = require('./db');
-const { Op } = require('sequelize');
+const { Op, DataTypes } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
+
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -24,7 +26,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Uploads klasörünü dışarı aç (Resim ve PDF'ler için)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const SECRET_KEY = 'gps_rapor_secret_key_change_this';
+const SECRET_KEY = process.env.JWT_SECRET || 'gps_rapor_secret_key_change_this';
 
 // Basit Middleware
 const authenticateToken = (req, res, next) => {
@@ -64,7 +66,18 @@ app.get('/api/users', authenticateToken, async (req, res) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
     try {
         const users = await User.findAll({
-            attributes: ['id', 'personelCode', 'name', 'role', 'avatar']
+            attributes: [
+                'id',
+                'personelCode',
+                'name',
+                'role',
+                'avatar',
+                'lastLat',
+                'lastLng',
+                'speed',
+                'battery',
+                'lastSeen'
+            ]
         });
         res.json(users);
     } catch (e) {
@@ -116,7 +129,13 @@ io.on('connection', (socket) => {
             const dbUser = await User.findByPk(decoded.id);
 
             if (dbUser) {
-                const user = { ...decoded, role: dbUser.role }; // Rolü güncelle
+                const user = {
+                    ...decoded,
+                    role: dbUser.role,
+                    name: dbUser.name,
+                    code: dbUser.personelCode,
+                    avatar: dbUser.avatar
+                };
                 socket.user = user;
                 const room = user.role === 'admin' ? 'admins' : `user_${user.id}`;
                 socket.join(room);
@@ -180,7 +199,7 @@ io.on('connection', (socket) => {
             let receiverId = null;
             let groupId = null;
 
-            if (data.to === 'admin') {
+            if (data.to === 'admin' || data.to === 'admins') {
                 groupId = 'admins';
             } else if (data.to.startsWith('group_')) {
                 groupId = data.to;
@@ -291,6 +310,7 @@ app.post('/api/reports', authenticateToken, async (req, res) => {
             collections,
             cashDelivered,
             description,
+            pdfPath,
             UserId: req.user.id
         });
 
@@ -376,7 +396,7 @@ app.get('/api/messages/:target', authenticateToken, async (req, res) => {
         const target = req.params.target;
         let whereClause = {};
 
-        if (target === 'admins') {
+        if (target === 'admins' || target === 'admin') {
             if (req.user.role === 'admin') {
                 whereClause = { groupId: 'admins' };
             } else {
@@ -405,6 +425,26 @@ app.get('/api/messages/:target', authenticateToken, async (req, res) => {
     }
 });
 
+// Rapor PDF İndirme (Admin veya rapor sahibi)
+app.get('/api/reports/:id/pdf', authenticateToken, async (req, res) => {
+    try {
+        const report = await Report.findByPk(req.params.id);
+        if (!report) return res.status(404).json({ error: 'Rapor bulunamadı' });
+
+        if (req.user.role !== 'admin' && report.UserId !== req.user.id) {
+            return res.sendStatus(403);
+        }
+
+        if (!report.pdfPath || !fs.existsSync(report.pdfPath)) {
+            return res.status(404).json({ error: 'PDF dosyası bulunamadı' });
+        }
+
+        res.sendFile(report.pdfPath);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Backend'i başlat ve DB'yi hazırla
 const PORT = 3000;
 server.listen(PORT, async () => {
@@ -414,6 +454,14 @@ server.listen(PORT, async () => {
     // Veritabanı tablolarını güncelle (Veri kaybı olmadan)
     try {
         await sequelize.sync(); // alter: true riskli, kaldirdim
+        const queryInterface = sequelize.getQueryInterface();
+        const reportTable = await queryInterface.describeTable('Reports');
+        if (!reportTable.pdfPath) {
+            await queryInterface.addColumn('Reports', 'pdfPath', {
+                type: DataTypes.STRING,
+                allowNull: true
+            });
+        }
     } catch (e) {
         console.error('DB Sync Error (Ignored):', e.message);
     }

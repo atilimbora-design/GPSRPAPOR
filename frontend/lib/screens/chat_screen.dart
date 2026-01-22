@@ -12,7 +12,7 @@ class ChatScreen extends StatefulWidget {
   final String targetId; // 'admin', 'group_X', or userId
   final String targetName;
 
-  const ChatScreen({Key? key, required this.targetId, required this.targetName}) : super(key: key);
+  const ChatScreen({super.key, required this.targetId, required this.targetName});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -23,7 +23,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = true;
-  File? _selectedImage;
 
   @override
   void initState() {
@@ -59,7 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
     
     bool shouldAdd = false;
     
-    if (widget.targetId == 'admin') {
+    if (widget.targetId == 'admins') {
        if (data['to'] == 'admin' || data['to'] == 'admins') shouldAdd = true;
        if (data['to'].toString() == myId) shouldAdd = true; // Admin sent to me
     } else if (widget.targetId.startsWith('group_') && data['to'] == widget.targetId) {
@@ -176,8 +175,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         decoration: BoxDecoration(
                           color: isMe ? Colors.green[100] : Colors.white,
                           borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black12, blurRadius: 2, offset: const Offset(1,1))
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(1,1))
                           ]
                         ),
                         child: Column(

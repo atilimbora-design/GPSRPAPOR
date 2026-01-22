@@ -38,10 +38,16 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         });
       } else {
         setState(() => _isLoading = false);
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: ${response.statusCode} - Veri çekilemedi.')));
+        }
       }
     } catch (e) {
       print('User fetch error: $e');
       setState(() => _isLoading = false);
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Bağlantı Hatası: $e')));
+      }
     }
   }
 
@@ -72,33 +78,39 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               ),
               Row(
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () {
-                        Navigator.push(
-                           context,
-                           MaterialPageRoute(
-                             builder: (context) => const ChatScreen(
-                               targetId: 'admin', // send to admin group logic
-                               targetName: 'Yönetici Grubu',
+                   Flexible(
+                     child: ElevatedButton.icon(
+                      onPressed: () {
+                          Navigator.push(
+                             context,
+                             MaterialPageRoute(
+                               builder: (context) => const ChatScreen(
+                                 targetId: 'admins', 
+                                 targetName: 'Yönetici Grubu',
+                               ),
                              ),
-                           ),
-                         );
-                    },
-                    icon: const Icon(Icons.group),
-                    label: const Text('Grup Sohbeti'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[800],
-                      foregroundColor: Colors.white,
+                           );
+                      },
+                      icon: const Icon(Icons.group, size: 18),
+                      label: const Text('Grup', maxLines: 1),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[800],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    onPressed: _showAddUserDialog,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Yeni Personel Ekle'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE65100),
-                      foregroundColor: Colors.white,
+                   ),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: ElevatedButton.icon(
+                      onPressed: _showAddUserDialog,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Ekle', maxLines: 1),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE65100),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
                     ),
                   ),
                 ],

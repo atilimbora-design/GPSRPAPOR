@@ -62,6 +62,14 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  Future<void> updateUserAvatar(String avatarUrl) async {
+    if (_user == null) return;
+    _user = {..._user!, 'avatar': avatarUrl};
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user', jsonEncode(_user));
+    notifyListeners();
+  }
+
   Future<bool> submitReport(Map<String, dynamic> reportData) async {
     try {
       final response = await http.post(
