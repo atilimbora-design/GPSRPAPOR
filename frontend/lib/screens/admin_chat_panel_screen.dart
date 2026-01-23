@@ -82,9 +82,11 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
       );
 
       if (response.statusCode == 200) {
+        final authService = Provider.of<AuthService>(context, listen: false);
+        final myId = authService.user?['id'];
         final List<dynamic> users = jsonDecode(response.body);
         setState(() {
-          _users = users.where((u) => u['role'] != 'admin').toList();
+          _users = users.where((u) => u['id'] != myId).toList();
           _isLoadingUsers = false;
         });
         if (widget.initialUserId != null) {

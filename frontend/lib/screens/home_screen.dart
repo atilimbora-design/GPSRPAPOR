@@ -7,7 +7,7 @@ import '../services/auth_service.dart';
 import '../services/socket_service.dart';
 import '../services/background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'chat_screen.dart';
+import 'admin_list_screen.dart';
 import 'report_screen.dart';
 import 'user_reports_screen.dart';
 import 'admin_map_screen.dart';
@@ -214,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
            Navigator.push(
             context,
             MaterialPageRoute(
-               builder: (context) => const ChatScreen(targetId: 'admins', targetName: 'Yönetici ile Sohbet')
+               builder: (context) => const AdminListScreen()
             )
            );
         },

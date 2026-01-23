@@ -114,6 +114,13 @@ class _ChatScreenState extends State<ChatScreen> {
           _isLoading = false;
         });
         _scrollToBottom();
+      } else {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Mesajlar yüklenemedi: ${response.statusCode}')),
+          );
+        }
       }
     } catch (e) {
       print('Mesaj yükleme hatası: $e');

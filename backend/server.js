@@ -86,6 +86,19 @@ app.get('/api/users', authenticateToken, async (req, res) => {
     }
 });
 
+// Kullanıcı: Admin listesi
+app.get('/api/admins', authenticateToken, async (req, res) => {
+    try {
+        const admins = await User.findAll({
+            where: { role: 'admin' },
+            attributes: ['id', 'personelCode', 'name', 'role', 'avatar']
+        });
+        res.json(admins);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Admin: Kullanıcı Oluştur
 app.post('/api/users', authenticateToken, async (req, res) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
@@ -264,6 +277,9 @@ io.on('connection', (socket) => {
                 socket.user = user;
                 const room = user.role === 'admin' ? 'admins' : `user_${user.id}`;
                 socket.join(room);
+                if (user.role === 'admin') {
+                    socket.join(`user_${user.id}`);
+                }
                 console.log(`${user.name} authenticated. Role: ${user.role} (Updated) Room: ${room}`);
 
                 // Join group rooms based on membership
@@ -293,9 +309,6 @@ io.on('connection', (socket) => {
 
         if (!socket.user) return;
         if (socket.user.role === 'admin') return;
-        if (socket.user.role === 'admin') {
-            return;
-        }
 
         // Veritabanına kaydet
         await Location.create({
