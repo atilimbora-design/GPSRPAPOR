@@ -8,6 +8,8 @@ import '../providers/device_location_provider.dart';
 class LiveTrackingMapOsm extends StatefulWidget {
   final DeviceLocationProvider provider;
   final String deviceId;
+  final String? markerAvatarUrl;
+  final String? markerLabel;
   final bool followCameraByDefault;
   final bool showPolyline;
   final Duration animationDuration;
@@ -17,6 +19,8 @@ class LiveTrackingMapOsm extends StatefulWidget {
     super.key,
     required this.provider,
     required this.deviceId,
+    this.markerAvatarUrl,
+    this.markerLabel,
     this.followCameraByDefault = true,
     this.showPolyline = true,
     this.animationDuration = const Duration(milliseconds: 20000),
@@ -198,20 +202,11 @@ class _LiveTrackingMapOsmState extends State<LiveTrackingMapOsm> with TickerProv
                 markers: [
                   Marker(
                     point: _currentPos!,
-                    width: 50,
-                    height: 50,
+                    width: 60,
+                    height: 70,
                     child: Transform.rotate(
                       angle: _degToRad(_currentBearing),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: markerColor,
-                          shape: BoxShape.circle,
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black45, blurRadius: 6),
-                          ],
-                        ),
-                        child: const Icon(Icons.navigation, color: Colors.white),
-                      ),
+                      child: _buildMarker(markerColor),
                     ),
                   ),
                 ],
@@ -250,6 +245,70 @@ class _LiveTrackingMapOsmState extends State<LiveTrackingMapOsm> with TickerProv
           ),
         )
       ],
+    );
+  }
+
+  Widget _buildMarker(Color markerColor) {
+    if (widget.markerAvatarUrl != null && widget.markerAvatarUrl!.isNotEmpty) {
+      return Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: markerColor, width: 2),
+                  image: DecorationImage(
+                    image: NetworkImage(widget.markerAvatarUrl!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Container(
+                width: 0,
+                height: 0,
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: Colors.transparent, width: 8),
+                    right: BorderSide(color: Colors.transparent, width: 8),
+                    top: BorderSide(color: markerColor, width: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if ((widget.markerLabel ?? '').isNotEmpty)
+            Positioned(
+              top: 28,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  widget.markerLabel!,
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: markerColor,
+        shape: BoxShape.circle,
+        boxShadow: const [
+          BoxShadow(color: Colors.black45, blurRadius: 6),
+        ],
+      ),
+      child: const Icon(Icons.navigation, color: Colors.white),
     );
   }
 }

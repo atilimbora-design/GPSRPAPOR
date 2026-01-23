@@ -124,6 +124,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           id: user['personelCode'] ?? '?',
                           avatarUrl: user['avatar'],
                           size: 40,
+                          isAdmin: user['role'] == 'admin',
                         ),
                         title: Text(
                           user['name'],
@@ -193,40 +194,46 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         title: Text(editUser == null ? 'Yeni Personel Ekle' : 'Personel Düzenle', style: const TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: codeController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Personel Kodu', labelStyle: TextStyle(color: Colors.white70)),
-            ),
-            TextField(
-              controller: nameController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Ad Soyad', labelStyle: TextStyle(color: Colors.white70)),
-            ),
-            TextField(
-              controller: passwordController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: editUser == null ? 'Şifre' : 'Yeni Şifre (opsiyonel)',
-                labelStyle: const TextStyle(color: Colors.white70),
+        content: SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: codeController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Personel Kodu', labelStyle: TextStyle(color: Colors.white70)),
               ),
-            ),
-            DropdownButtonFormField<String>(
-              value: role,
-              dropdownColor: const Color(0xFF1E1E1E),
-              decoration: const InputDecoration(labelText: 'Rol', labelStyle: TextStyle(color: Colors.white70)),
-              items: const [
-                DropdownMenuItem(value: 'user', child: Text('Personel', style: TextStyle(color: Colors.white))),
-                DropdownMenuItem(value: 'admin', child: Text('Admin', style: TextStyle(color: Colors.white))),
-              ],
-              onChanged: (val) {
-                if (val != null) role = val;
-              },
-            ),
-          ],
+              const SizedBox(height: 8),
+              TextField(
+                controller: nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Ad Soyad', labelStyle: TextStyle(color: Colors.white70)),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: passwordController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: editUser == null ? 'Şifre' : 'Yeni Şifre (opsiyonel)',
+                  labelStyle: const TextStyle(color: Colors.white70),
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: role,
+                dropdownColor: const Color(0xFF1E1E1E),
+                decoration: const InputDecoration(labelText: 'Rol', labelStyle: TextStyle(color: Colors.white70)),
+                items: const [
+                  DropdownMenuItem(value: 'user', child: Text('Personel', style: TextStyle(color: Colors.white))),
+                  DropdownMenuItem(value: 'admin', child: Text('Admin', style: TextStyle(color: Colors.white))),
+                ],
+                onChanged: (val) {
+                  if (val != null) role = val;
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
@@ -317,6 +324,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     required String id,
     String? avatarUrl,
     double size = 40,
+    bool isAdmin = false,
   }) {
     return Stack(
       alignment: Alignment.bottomCenter,
@@ -326,23 +334,24 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           backgroundColor: const Color(0xFF2C2C2C),
           backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
           child: avatarUrl == null
-              ? const Icon(Icons.person, color: Colors.white70)
+              ? Icon(isAdmin ? Icons.shield : Icons.person, color: Colors.white70)
               : null,
         ),
-        Positioned(
-          bottom: -2,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              id,
-              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+        if (!isAdmin)
+          Positioned(
+            bottom: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                id,
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
-        ),
       ],
     );
   }

@@ -29,6 +29,12 @@ class AuthService with ChangeNotifier {
         final data = jsonDecode(response.body);
         _token = data['token'];
         _user = data['user'];
+
+        if (kIsWeb && _user?['role'] != 'admin') {
+          _token = null;
+          _user = null;
+          return false;
+        }
         
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', _token!);

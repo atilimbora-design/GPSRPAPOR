@@ -133,7 +133,8 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         title: const Text('Yeni Grup', style: TextStyle(color: Colors.white)),
         content: SizedBox(
@@ -162,7 +163,7 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                         } else {
                           selected.remove(id);
                         }
-                        setState(() {});
+                        setModalState(() {});
                       },
                       title: Text(
                         '${user['name']} (${user['personelCode']})',
@@ -188,6 +189,7 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
             child: const Text('Kaydet'),
           ),
         ],
+      ),
       ),
     );
   }

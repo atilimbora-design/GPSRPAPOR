@@ -155,9 +155,16 @@ class _AdminLiveTrackingScreenState extends State<AdminLiveTrackingScreen> {
               ? const Center(
                   child: Text('Takip için cihaz seçin', style: TextStyle(color: Colors.white54)),
                 )
-              : LiveTrackingMapOsm(
-                  provider: _provider,
-                  deviceId: _selectedUserId!.toString(),
+              : Builder(
+                  builder: (context) {
+                    final selected = _users.firstWhere((u) => u['id'] == _selectedUserId, orElse: () => null);
+                    return LiveTrackingMapOsm(
+                      provider: _provider,
+                      deviceId: _selectedUserId!.toString(),
+                      markerAvatarUrl: selected == null ? null : selected['avatar'],
+                      markerLabel: selected == null ? '' : (selected['personelCode'] ?? ''),
+                    );
+                  },
                 ),
         ),
       ],

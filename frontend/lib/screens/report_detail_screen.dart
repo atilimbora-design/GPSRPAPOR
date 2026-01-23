@@ -21,6 +21,7 @@ class ReportDetailScreen extends StatelessWidget {
         : report['expenses'] ?? {};
 
     return Scaffold(
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: Text('${report['date']} Rapor Detayı'),
         backgroundColor: const Color(0xFFE65100),
@@ -118,8 +119,8 @@ class ReportDetailScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          Text(value?.toString() ?? '-', style: const TextStyle(color: Colors.black87)),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.white70)),
+          Text(value?.toString() ?? '-', style: const TextStyle(color: Colors.white)),
         ],
       ),
     );
@@ -134,12 +135,12 @@ class ReportDetailScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(type, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(type, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               if (desc != null && desc.isNotEmpty)
-                Text(desc, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(desc, style: const TextStyle(fontSize: 12, color: Colors.white54)),
             ],
           ),
-          Text('${amount ?? 0} TL'),
+          Text('${amount ?? 0} TL', style: const TextStyle(color: Colors.white)),
         ],
       ),
     );

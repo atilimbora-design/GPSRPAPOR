@@ -389,11 +389,11 @@ class _ReportScreenState extends State<ReportScreen> {
     final pdf = pw.Document();
     
     // font yükleme (Türkçe karakterler için)
-    final font = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
+    final font = await PdfGoogleFonts.notoSansRegular();
+    final fontBold = await PdfGoogleFonts.notoSansBold();
 
     // Logo yükle
-    final logoImage = await imageFromAssetBundle('assets/logo.png');
+    final logoImage = await imageFromAssetBundle('assets/atilimlogo.png');
 
     pdf.addPage(
       pw.Page(

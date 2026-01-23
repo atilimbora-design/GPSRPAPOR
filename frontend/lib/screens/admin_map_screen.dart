@@ -7,7 +7,6 @@ import 'dart:convert';
 import 'dart:async';
 import '../services/socket_service.dart';
 import '../services/auth_service.dart';
-import 'chat_screen.dart';
 import 'admin_chat_panel_screen.dart';
 
 class AdminMapScreen extends StatefulWidget {
@@ -116,6 +115,18 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
       final userId = data['userId'];
       _userLocations[userId] = data;
     });
+  }
+
+  Map<String, List<dynamic>> _clusterLocations() {
+    final Map<String, List<dynamic>> clusters = {};
+    for (final loc in _userLocations.values) {
+      final lat = (loc['lat'] as num).toDouble();
+      final lng = (loc['lng'] as num).toDouble();
+      final key = '${lat.toStringAsFixed(4)}_${lng.toStringAsFixed(4)}';
+      clusters.putIfAbsent(key, () => []);
+      clusters[key]!.add(loc);
+    }
+    return clusters;
   }
 
   void _centerOnUser(int userId) {
@@ -261,60 +272,84 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                                 ),
                               ),
                             )),
-                        ..._userLocations.values.map((loc) {
-                        final userId = loc['userId'] ?? loc['id'];
-                        final fullUser = _allUsers.firstWhere((u) => u['id'] == userId, orElse: () => {});
-                        final avatarUrl = loc['avatar'] ?? fullUser['avatar'];
-                        
-                        // Timestamp check for online status color
-                        bool isOnline = _isOnlineFromTimestamp(loc['timestamp']);
+                        ..._clusterLocations().entries.map((entry) {
+                          final items = entry.value;
+                          final first = items.first;
+                          final lat = (first['lat'] as num).toDouble();
+                          final lng = (first['lng'] as num).toDouble();
 
-                        return Marker(
-                          key: Key(userId.toString()),
-                          point: LatLng(loc['lat'], loc['lng']),
-                          width: 60,
-                          height: 80,
-                          child: GestureDetector(
-                            onTap: () => _showUserDetail(loc),
-                            child: Column(
-                              children: [
-                                // Avatar
-                                Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isOnline ? Colors.greenAccent : Colors.red, 
-                                      width: 2,
-                                    ),
-                                    boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)]
-                                  ),
-                                  child: _buildAvatarWithId(
-                                    id: fullUser['personelCode']?.toString() ?? '',
-                                    avatarUrl: avatarUrl,
-                                    size: 40,
-                                  ),
+                          if (items.length > 1) {
+                            return Marker(
+                              point: LatLng(lat, lng),
+                              width: 60,
+                              height: 60,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black87,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.orangeAccent, width: 2),
                                 ),
-                                // İsim Etiketi
-                                Container(
-                                  margin: const EdgeInsets.only(top: 4),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black87, // Dark background
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: const [BoxShadow(color: Colors.white24, blurRadius: 2)],
-                                  ),
+                                child: Center(
                                   child: Text(
-                                    loc['name'] ?? 'Bilinmiyor',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                                    overflow: TextOverflow.visible,
-                                    textAlign: TextAlign.center,
+                                    '+${items.length}',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                   ),
                                 ),
-                              ],
+                              ),
+                            );
+                          }
+
+                          final loc = first;
+                          final userId = loc['userId'] ?? loc['id'];
+                          final fullUser = _allUsers.firstWhere((u) => u['id'] == userId, orElse: () => {});
+                          final avatarUrl = loc['avatar'] ?? fullUser['avatar'];
+                          final isOnline = _isOnlineFromTimestamp(loc['timestamp']);
+
+                          return Marker(
+                            key: Key(userId.toString()),
+                            point: LatLng(lat, lng),
+                            width: 60,
+                            height: 80,
+                            child: GestureDetector(
+                              onTap: () => _showUserDetail(loc),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isOnline ? Colors.greenAccent : Colors.red,
+                                        width: 2,
+                                      ),
+                                      boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
+                                    ),
+                                    child: _buildAvatarWithId(
+                                      id: fullUser['personelCode']?.toString() ?? '',
+                                      avatarUrl: avatarUrl,
+                                      size: 40,
+                                    ),
+                                  ),
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black87,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: const [BoxShadow(color: Colors.white24, blurRadius: 2)],
+                                    ),
+                                    child: Text(
+                                      (loc['name'] ?? 'Bilinmiyor').toString(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }).toList(),
                       ],
                     ),
                   ],
@@ -463,6 +498,8 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
      final userId = locData['userId'] ?? locData['id']; // List click sends DB user, Map click sends loc data
      final fullUser = _allUsers.firstWhere((u) => u['id'] == userId, orElse: () => {});
      final avatarUrl = fullUser['avatar'];
+     final isStale = !_isOnlineFromTimestamp(locData['timestamp']);
+     final isLoggedOut = fullUser['lastLogout'] != null;
 
      showModalBottomSheet(
        context: context,
@@ -482,6 +519,16 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
              const SizedBox(height: 10),
              Text(locData['name'] ?? 'İsimsiz', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
              Text('Son Güncelleme: $timeStr', style: const TextStyle(color: Colors.white54)),
+             if (isLoggedOut)
+               const Padding(
+                 padding: EdgeInsets.only(top: 6),
+                 child: Text('Çıkış yapıldı', style: TextStyle(color: Colors.orangeAccent)),
+               )
+             else if (isStale)
+               const Padding(
+                 padding: EdgeInsets.only(top: 6),
+                 child: Text('Bağlantı yok', style: TextStyle(color: Colors.redAccent)),
+               ),
              const SizedBox(height: 20),
              Row(
                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -495,11 +542,13 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                width: double.infinity,
                child: ElevatedButton.icon(
                  onPressed: () {
-                   Navigator.pop(context); // Close modal
-                   Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
-                     targetId: userId.toString(), 
-                     targetName: locData['name'] ?? 'Personel'
-                   )));
+                   Navigator.pop(context);
+                   Navigator.push(context, MaterialPageRoute(
+                     builder: (_) => AdminChatPanelScreen(
+                       initialUserId: userId,
+                       initialUserName: locData['name'] ?? 'Personel',
+                     ),
+                   ));
                  },
                  icon: const Icon(Icons.chat),
                  label: const Text('Mesaj Gönder'),
