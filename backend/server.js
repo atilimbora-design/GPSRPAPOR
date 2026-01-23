@@ -76,7 +76,8 @@ app.get('/api/users', authenticateToken, async (req, res) => {
                 'lastLng',
                 'speed',
                 'battery',
-                'lastSeen'
+                'lastSeen',
+                'lastLogout'
             ]
         });
         res.json(users);
@@ -312,7 +313,8 @@ io.on('connection', (socket) => {
             lastLng: data.lng,
             speed: data.speed,
             battery: data.battery,
-            lastSeen: new Date()
+            lastSeen: new Date(),
+            lastLogout: null
         }, { where: { id: socket.user.id } });
 
         // Tüm istemcilere (adminlere) konum güncellemesini bildir
@@ -606,6 +608,16 @@ app.get('/api/messages/:target', authenticateToken, async (req, res) => {
     }
 });
 
+// Logout (Kullanıcı çıkış bildirimi)
+app.post('/api/logout', authenticateToken, async (req, res) => {
+    try {
+        await User.update({ lastLogout: new Date() }, { where: { id: req.user.id } });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Rapor PDF İndirme (Admin veya rapor sahibi)
 app.get('/api/reports/:id/pdf', authenticateToken, async (req, res) => {
     try {
@@ -640,6 +652,13 @@ server.listen(PORT, async () => {
         if (!reportTable.pdfPath) {
             await queryInterface.addColumn('Reports', 'pdfPath', {
                 type: DataTypes.STRING,
+                allowNull: true
+            });
+        }
+        const userTable = await queryInterface.describeTable('Users');
+        if (!userTable.lastLogout) {
+            await queryInterface.addColumn('Users', 'lastLogout', {
+                type: DataTypes.DATE,
                 allowNull: true
             });
         }

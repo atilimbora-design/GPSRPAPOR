@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -597,6 +596,7 @@ class _ReportScreenState extends State<ReportScreen> {
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rapor sunucuya başarıyla kaydedildi!'), backgroundColor: Colors.green));
+          Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sunucu kaydı başarısız oldu (Offline Mod)'), backgroundColor: Colors.orange));
         }
@@ -630,7 +630,7 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget _buildTextField(TextEditingController controller, String label, {IconData? icon, bool isNumber = false, int maxLines = 1, Function(String)? onChanged}) {
     return TextFormField(
       controller: controller,
-      keyboardType: isNumber ? TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+      keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
       maxLines: maxLines,
       onChanged: onChanged,
       style: const TextStyle(color: Colors.white),

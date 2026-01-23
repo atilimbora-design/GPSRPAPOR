@@ -43,6 +43,15 @@ class AuthService with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    try {
+      if (_token != null) {
+        await http.post(
+          Uri.parse('$baseUrl/api/logout'),
+          headers: {'Authorization': 'Bearer $_token'},
+        );
+      }
+    } catch (_) {}
+
     _token = null;
     _user = null;
     final prefs = await SharedPreferences.getInstance();

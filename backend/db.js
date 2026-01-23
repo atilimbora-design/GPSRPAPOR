@@ -48,7 +48,8 @@ const User = sequelize.define('User', {
     lastLng: { type: DataTypes.FLOAT, allowNull: true },
     speed: { type: DataTypes.FLOAT, allowNull: true },
     battery: { type: DataTypes.INTEGER, allowNull: true },
-    lastSeen: { type: DataTypes.DATE, allowNull: true }
+    lastSeen: { type: DataTypes.DATE, allowNull: true },
+    lastLogout: { type: DataTypes.DATE, allowNull: true }
 });
 
 const Report = sequelize.define('Report', {

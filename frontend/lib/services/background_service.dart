@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
@@ -69,6 +68,10 @@ void onStart(ServiceInstance service) async {
       .enableAutoConnect()
       .build());
 
+  socket.io.options?['reconnection'] = true;
+  socket.io.options?['reconnectionAttempts'] = 999999;
+  socket.io.options?['reconnectionDelay'] = 2000;
+
   socket.onConnect((_) {
     print('Background Socket Connected');
     socket.emit('authenticate', token);
@@ -76,7 +79,7 @@ void onStart(ServiceInstance service) async {
 
   final Battery battery = Battery();
 
-  // Konum Takibi (20 saniye aralıkla) - Kullanıcı isteği
+  // Konum Takibi (20 saniye aralıkla)
   Timer.periodic(const Duration(seconds: 20), (timer) async {
     if (service is AndroidServiceInstance) {
       if (await service.isForegroundService()) {
@@ -104,5 +107,10 @@ void onStart(ServiceInstance service) async {
     } catch (e) {
       print('Konum hatası: $e');
     }
+  });
+
+  service.on('stopService').listen((_) async {
+    socket.disconnect();
+    await service.stopSelf();
   });
 }

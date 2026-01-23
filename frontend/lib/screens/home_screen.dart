@@ -159,7 +159,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: 'Yeni Rapor', 
                   color: const Color(0xFF00E5FF),
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportScreen()));
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportScreen()))
+                        .then((value) {
+                      if (value == true) {
+                        _fetchStats();
+                      }
+                    });
                   }
                 ),
                 _buildMenuCard(

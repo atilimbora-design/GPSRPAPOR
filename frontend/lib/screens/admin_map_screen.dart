@@ -190,10 +190,19 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
     );
   }
 
-  String _formatLastSeen(dynamic lastSeen) {
-    final parsed = DateTime.tryParse(lastSeen?.toString() ?? '');
-    if (parsed == null) return 'Veri yok / Offline';
-    final local = parsed.toLocal();
+  String _formatLastSeen(dynamic lastSeen, dynamic lastLogout) {
+    final seen = DateTime.tryParse(lastSeen?.toString() ?? '');
+    final logout = DateTime.tryParse(lastLogout?.toString() ?? '');
+
+    if (logout != null && (seen == null || logout.isAfter(seen))) {
+      final local = logout.toLocal();
+      final hh = local.hour.toString().padLeft(2, '0');
+      final mm = local.minute.toString().padLeft(2, '0');
+      return 'Çıkış yapıldı: ${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} $hh:$mm';
+    }
+
+    if (seen == null) return 'Veri yok / Offline';
+    final local = seen.toLocal();
     final hh = local.hour.toString().padLeft(2, '0');
     final mm = local.minute.toString().padLeft(2, '0');
     return 'Son görüldü: ${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} $hh:$mm';
@@ -420,7 +429,7 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                                     ],
                                   )
                                 : Text(
-                                    _formatLastSeen(user['lastSeen']),
+                                    _formatLastSeen(user['lastSeen'], user['lastLogout']),
                                     style: const TextStyle(color: Colors.white24, fontSize: 12),
                                   ),
                             trailing: IconButton(
