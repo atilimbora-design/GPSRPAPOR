@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'chat_screen.dart';
+import 'admin_chat_panel_screen.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -142,9 +142,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                  Navigator.push(
                                    context,
                                    MaterialPageRoute(
-                                     builder: (context) => ChatScreen(
-                                       targetId: user['id'].toString(), 
-                                       targetName: user['name'],
+                                     builder: (context) => AdminChatPanelScreen(
+                                       initialUserId: user['id'],
+                                       initialUserName: user['name'],
                                      ),
                                    ),
                                  );

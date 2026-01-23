@@ -5,8 +5,8 @@ import '../services/auth_service.dart';
 import 'admin_map_screen.dart';
 import 'admin_reports_screen.dart';
 import 'admin_users_screen.dart';
-import 'login_screen.dart';
 import 'admin_chat_panel_screen.dart';
+import 'admin_live_tracking_screen.dart';
 
 import '../services/socket_service.dart';
 
@@ -38,7 +38,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   // Sayfalar
   final List<Widget> _pages = [
-    const AdminMapScreen(), // Mevcut harita ekranı
+    const AdminMapScreen(),
+    const AdminLiveTrackingScreen(),
     const AdminReportsScreen(),
     const AdminUsersScreen(),
     const AdminChatPanelScreen(),
@@ -112,9 +113,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         
         // Menü Öğeleri
         _buildMenuItem(0, Icons.map, 'Canlı Harita'),
-        _buildMenuItem(1, Icons.assignment, 'Raporlar & Finans'),
-        _buildMenuItem(2, Icons.people, 'Personel Yönetimi'),
-        _buildMenuItem(3, Icons.chat, 'Mesajlar'),
+        _buildMenuItem(1, Icons.location_searching, 'Akıcı Takip'),
+        _buildMenuItem(2, Icons.assignment, 'Raporlar & Finans'),
+        _buildMenuItem(3, Icons.people, 'Personel Yönetimi'),
+        _buildMenuItem(4, Icons.chat, 'Mesajlar'),
         
         const Spacer(),
         
@@ -139,7 +141,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
 
         // Çıkış Butonu
-        _buildMenuItem(4, Icons.exit_to_app, 'Çıkış Yap', isLogout: true),
+        _buildMenuItem(5, Icons.exit_to_app, 'Çıkış Yap', isLogout: true),
         const SizedBox(height: 20),
       ],
     );
