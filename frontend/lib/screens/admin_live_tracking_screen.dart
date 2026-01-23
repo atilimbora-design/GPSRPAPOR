@@ -7,7 +7,7 @@ import '../models/location_update.dart';
 import '../providers/device_location_provider.dart';
 import '../services/auth_service.dart';
 import '../services/socket_service.dart';
-import '../widgets/live_tracking_map.dart';
+import '../widgets/live_tracking_map_osm.dart';
 
 class AdminLiveTrackingScreen extends StatefulWidget {
   const AdminLiveTrackingScreen({super.key});
@@ -155,7 +155,7 @@ class _AdminLiveTrackingScreenState extends State<AdminLiveTrackingScreen> {
               ? const Center(
                   child: Text('Takip için cihaz seçin', style: TextStyle(color: Colors.white54)),
                 )
-              : LiveTrackingMap(
+              : LiveTrackingMapOsm(
                   provider: _provider,
                   deviceId: _selectedUserId!.toString(),
                 ),
