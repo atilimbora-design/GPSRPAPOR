@@ -42,6 +42,8 @@ Future<void> initializeService() async {
       onBackground: onIosBackground,
     ),
   );
+
+  await service.startService();
 }
 
 @pragma('vm:entry-point')
@@ -113,4 +115,9 @@ void onStart(ServiceInstance service) async {
     socket.disconnect();
     await service.stopSelf();
   });
+}
+
+Future<void> stopBackgroundService() async {
+  final service = FlutterBackgroundService();
+  service.invoke('stopService');
 }

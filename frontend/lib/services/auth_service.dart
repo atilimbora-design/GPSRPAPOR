@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+import 'background_service.dart';
 
 class AuthService with ChangeNotifier {
   // Raspberry Pi IP'si (Kullanıcının verdiği)
@@ -31,6 +33,14 @@ class AuthService with ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', _token!);
         await prefs.setString('user', jsonEncode(_user));
+
+        // Restart background service with new token
+        if (!kIsWeb) {
+          await stopBackgroundService();
+          if (_user?['role'] != 'admin') {
+            await initializeService();
+          }
+        }
         
         notifyListeners();
         return true;
@@ -51,6 +61,10 @@ class AuthService with ChangeNotifier {
         );
       }
     } catch (_) {}
+
+    if (!kIsWeb) {
+      await stopBackgroundService();
+    }
 
     _token = null;
     _user = null;
