@@ -96,6 +96,18 @@ const Message = sequelize.define('Message', {
     groupId: DataTypes.STRING
 });
 
+const Group = sequelize.define('Group', {
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    members: {
+        type: DataTypes.JSON, // array of user ids
+        allowNull: false,
+        defaultValue: []
+    }
+});
+
 // İlişkiler
 User.hasMany(Report);
 Report.belongsTo(User);
@@ -168,7 +180,7 @@ async function seed() {
     console.log('Veritabanı ve klasörler başarıyla oluşturuldu!');
 }
 
-module.exports = { sequelize, User, Report, Location, Message, seed };
+module.exports = { sequelize, User, Report, Location, Message, Group, seed };
 
 if (require.main === module) {
     seed();

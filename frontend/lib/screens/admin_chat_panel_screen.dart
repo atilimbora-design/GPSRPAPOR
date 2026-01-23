@@ -5,9 +5,13 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../services/socket_service.dart';
+import 'chat_screen.dart';
 
 class AdminChatPanelScreen extends StatefulWidget {
-  const AdminChatPanelScreen({super.key});
+  final int? initialUserId;
+  final String? initialUserName;
+
+  const AdminChatPanelScreen({super.key, this.initialUserId, this.initialUserName});
 
   @override
   State<AdminChatPanelScreen> createState() => _AdminChatPanelScreenState();
@@ -15,11 +19,13 @@ class AdminChatPanelScreen extends StatefulWidget {
 
 class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
   List<dynamic> _users = [];
+  List<dynamic> _groups = [];
   int? _selectedUserId;
   String _selectedUserName = '';
   List<Map<String, dynamic>> _messages = [];
   bool _isLoadingUsers = true;
   bool _isLoadingMessages = false;
+  bool _isLoadingGroups = true;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -27,6 +33,7 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
   void initState() {
     super.initState();
     _fetchUsers();
+    _fetchGroups();
     _ensureSocketConnected();
     
     final socketService = Provider.of<SocketService>(context, listen: false);
@@ -77,13 +84,136 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> users = jsonDecode(response.body);
         setState(() {
-          _users = users.where((u) => u['role'] != 'admin').toList(); // Adminleri listeden çıkarabiliriz veya tutabiliriz
+          _users = users.where((u) => u['role'] != 'admin').toList();
           _isLoadingUsers = false;
         });
+        if (widget.initialUserId != null) {
+          dynamic initial;
+          try {
+            initial = _users.firstWhere((u) => u['id'] == widget.initialUserId);
+          } catch (_) {
+            initial = null;
+          }
+          if (initial != null) {
+            _selectUser(initial['id'], initial['name']);
+          } else if (widget.initialUserName != null) {
+            _selectUser(widget.initialUserId!, widget.initialUserName!);
+          }
+        }
       }
     } catch (e) {
       print('Kullanıcı listesi hatası: $e');
       setState(() => _isLoadingUsers = false);
+    }
+  }
+
+  Future<void> _fetchGroups() async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final response = await http.get(
+        Uri.parse('${AuthService.baseUrl}/api/groups'),
+        headers: {'Authorization': 'Bearer ${authService.token}'},
+      );
+      if (response.statusCode == 200) {
+        setState(() {
+          _groups = jsonDecode(response.body);
+          _isLoadingGroups = false;
+        });
+      } else {
+        setState(() => _isLoadingGroups = false);
+      }
+    } catch (e) {
+      setState(() => _isLoadingGroups = false);
+    }
+  }
+
+  Future<void> _createGroup() async {
+    final nameController = TextEditingController();
+    final selected = <int>{};
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text('Yeni Grup', style: TextStyle(color: Colors.white)),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'Grup Adı', labelStyle: TextStyle(color: Colors.white70)),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 320,
+                child: ListView.builder(
+                  itemCount: _users.length,
+                  itemBuilder: (context, index) {
+                    final user = _users[index];
+                    final id = user['id'] as int;
+                    return CheckboxListTile(
+                      value: selected.contains(id),
+                      onChanged: (val) {
+                        if (val == true) {
+                          selected.add(id);
+                        } else {
+                          selected.remove(id);
+                        }
+                        setState(() {});
+                      },
+                      title: Text(
+                        '${user['name']} (${user['personelCode']})',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isEmpty || selected.isEmpty) return;
+              await _saveGroup(name, selected.toList());
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveGroup(String name, List<int> memberIds) async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final response = await http.post(
+        Uri.parse('${AuthService.baseUrl}/api/groups'),
+        headers: {
+          'Authorization': 'Bearer ${authService.token}',
+          'Content-Type': 'application/json'
+        },
+        body: jsonEncode({'name': name, 'memberIds': memberIds}),
+      );
+      if (response.statusCode == 200) {
+        await _fetchGroups();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Grup oluşturulamadı: ${response.statusCode}')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+      }
     }
   }
 
@@ -221,25 +351,65 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                   ],
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _createGroup,
+                    icon: const Icon(Icons.group_add),
+                    label: const Text('Grup Oluştur'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: _isLoadingUsers 
                   ? const Center(child: CircularProgressIndicator()) 
-                  : ListView.builder(
-                      itemCount: _users.length,
-                      itemBuilder: (context, index) {
-                        final user = _users[index];
-                        final isSelected = user['id'] == _selectedUserId;
-                        return ListTile(
-                          tileColor: isSelected ? const Color(0xFFE65100).withOpacity(0.3) : null,
-                          leading: _buildAvatarWithId(
-                            id: user['personelCode'] ?? '?',
-                            avatarUrl: user['avatar'],
-                            size: 42,
+                  : ListView(
+                      children: [
+                        if (_isLoadingGroups)
+                          const ListTile(title: Text('Gruplar yükleniyor...', style: TextStyle(color: Colors.white54)))
+                        else ...[
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Text('Gruplar', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
                           ),
-                          title: Text(user['name'], style: const TextStyle(color: Colors.white)),
-                          onTap: () => _selectUser(user['id'], user['name']),
-                        );
-                      },
+                          ..._groups.map((g) => ListTile(
+                                leading: const Icon(Icons.group, color: Colors.blueAccent),
+                                title: Text(g['name'], style: const TextStyle(color: Colors.white)),
+                                onTap: () {
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (_) => ChatScreen(
+                                      targetId: 'group_${g['id']}',
+                                      targetName: g['name'],
+                                    ),
+                                  ));
+                                },
+                              )),
+                          const Divider(color: Colors.white10),
+                        ],
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Text('Personeller', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                        ),
+                        ..._users.map((user) {
+                          final isSelected = user['id'] == _selectedUserId;
+                          return ListTile(
+                            tileColor: isSelected ? const Color(0xFFE65100).withOpacity(0.3) : null,
+                            leading: _buildAvatarWithId(
+                              id: user['personelCode'] ?? '?',
+                              avatarUrl: user['avatar'],
+                              size: 42,
+                            ),
+                            title: Text(user['name'], style: const TextStyle(color: Colors.white)),
+                            onTap: () => _selectUser(user['id'], user['name']),
+                          );
+                        })
+                      ],
                     ),
               ),
             ],

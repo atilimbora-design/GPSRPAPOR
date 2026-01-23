@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const { sequelize, User, Location, Report, Message, seed } = require('./db');
+const { sequelize, User, Location, Report, Message, Group, seed } = require('./db');
 const { Op, DataTypes } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -85,6 +85,130 @@ app.get('/api/users', authenticateToken, async (req, res) => {
     }
 });
 
+// Admin: Kullanıcı Oluştur
+app.post('/api/users', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+    try {
+        const { personelCode, name, role = 'user', password } = req.body;
+        if (!personelCode || !name || !password) {
+            return res.status(400).json({ error: 'personelCode, name, password zorunlu' });
+        }
+
+        const exists = await User.findOne({ where: { personelCode } });
+        if (exists) return res.status(409).json({ error: 'Bu personel kodu zaten var' });
+
+        const hashed = await bcrypt.hash(password, 10);
+        const user = await User.create({
+            personelCode,
+            username: personelCode,
+            name,
+            password: hashed,
+            role
+        });
+
+        // Klasör yapısını oluştur
+        const userFolder = path.join(__dirname, 'personel', `${personelCode}_${name.replace(/\s+/g, '_')}`, 'raporlar');
+        fs.mkdirSync(userFolder, { recursive: true });
+
+        res.json({ id: user.id, personelCode: user.personelCode, name: user.name, role: user.role, avatar: user.avatar });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin: Kullanıcı Güncelle
+app.put('/api/users/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+    try {
+        const { id } = req.params;
+        const { personelCode, name, role, password } = req.body;
+        const user = await User.findByPk(id);
+        if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+
+        if (personelCode && personelCode !== user.personelCode) {
+            const exists = await User.findOne({ where: { personelCode } });
+            if (exists) return res.status(409).json({ error: 'Bu personel kodu zaten var' });
+            user.personelCode = personelCode;
+            user.username = personelCode;
+        }
+        if (name) user.name = name;
+        if (role) user.role = role;
+        if (password) {
+            user.password = await bcrypt.hash(password, 10);
+        }
+
+        await user.save();
+        res.json({ id: user.id, personelCode: user.personelCode, name: user.name, role: user.role, avatar: user.avatar });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin: Kullanıcı Sil
+app.delete('/api/users/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+    try {
+        const { id } = req.params;
+        const user = await User.findByPk(id);
+        if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+        if (user.role === 'admin') return res.status(400).json({ error: 'Admin silinemez' });
+        await user.destroy();
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Gruplar: Listele
+app.get('/api/groups', authenticateToken, async (req, res) => {
+    try {
+        const groups = await Group.findAll();
+        const userId = req.user.id;
+        const result = groups.filter(g => {
+            const members = Array.isArray(g.members) ? g.members : JSON.parse(g.members || '[]');
+            return req.user.role === 'admin' || members.includes(userId);
+        });
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin: Grup Oluştur
+app.post('/api/groups', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+    try {
+        const { name, memberIds } = req.body;
+        if (!name || !Array.isArray(memberIds) || memberIds.length === 0) {
+            return res.status(400).json({ error: 'name ve memberIds zorunlu' });
+        }
+        const uniqueMembers = [...new Set(memberIds.map(Number))];
+        const group = await Group.create({ name, members: uniqueMembers });
+        res.json(group);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin: Grup Güncelle
+app.put('/api/groups/:id', authenticateToken, async (req, res) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+    try {
+        const { id } = req.params;
+        const { name, memberIds } = req.body;
+        const group = await Group.findByPk(id);
+        if (!group) return res.status(404).json({ error: 'Grup bulunamadı' });
+        if (name) group.name = name;
+        if (Array.isArray(memberIds)) {
+            group.members = [...new Set(memberIds.map(Number))];
+        }
+        await group.save();
+        res.json(group);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Kullanıcı Avatar Yükleme API
 app.post('/api/users/avatar', authenticateToken, async (req, res) => {
     try {
@@ -140,6 +264,19 @@ io.on('connection', (socket) => {
                 const room = user.role === 'admin' ? 'admins' : `user_${user.id}`;
                 socket.join(room);
                 console.log(`${user.name} authenticated. Role: ${user.role} (Updated) Room: ${room}`);
+
+                // Join group rooms based on membership
+                try {
+                    const groups = await Group.findAll();
+                    groups.forEach(g => {
+                        const members = Array.isArray(g.members) ? g.members : JSON.parse(g.members || '[]');
+                        if (user.role === 'admin' || members.includes(user.id)) {
+                            socket.join(`group_${g.id}`);
+                        }
+                    });
+                } catch (e) {
+                    console.log('Group join failed', e);
+                }
             } else {
                 console.log('User not found in DB');
             }
@@ -429,6 +566,13 @@ app.get('/api/messages/:target', authenticateToken, async (req, res) => {
             };
         }
         } else if (target.startsWith('group_')) {
+            const groupIdNum = parseInt(target.replace('group_', ''), 10);
+            const group = await Group.findByPk(groupIdNum);
+            if (!group) return res.status(404).json({ error: 'Grup bulunamadı' });
+            const members = Array.isArray(group.members) ? group.members : JSON.parse(group.members || '[]');
+            if (req.user.role !== 'admin' && !members.includes(req.user.id)) {
+                return res.status(403).json({ error: 'Bu gruba erişiminiz yok' });
+            }
             whereClause = { groupId: target };
         } else {
         if (req.user.role === 'admin') {

@@ -52,10 +52,24 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Future<void> _deleteUser(int id) async {
-     // Implement API call
-     // For safety, maybe ask user first. 
-     // For now, just print.
-     print('Delete user $id');
+     try {
+       final authService = Provider.of<AuthService>(context, listen: false);
+       final response = await http.delete(
+         Uri.parse('${AuthService.baseUrl}/api/users/$id'),
+         headers: {'Authorization': 'Bearer ${authService.token}'},
+       );
+       if (response.statusCode == 200) {
+         await _fetchUsers();
+       } else {
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Silinemedi: ${response.statusCode}')));
+         }
+       }
+     } catch (e) {
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+       }
+     }
   }
 
   @override
@@ -78,29 +92,6 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               ),
               Row(
                 children: [
-                   Flexible(
-                     child: ElevatedButton.icon(
-                      onPressed: () {
-                          Navigator.push(
-                             context,
-                             MaterialPageRoute(
-                               builder: (context) => const ChatScreen(
-                                 targetId: 'admins', 
-                                 targetName: 'Yönetici Grubu',
-                               ),
-                             ),
-                           );
-                      },
-                      icon: const Icon(Icons.group, size: 18),
-                      label: const Text('Grup', maxLines: 1),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[800],
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                      ),
-                    ),
-                   ),
-                  const SizedBox(width: 5),
                   Flexible(
                     child: ElevatedButton.icon(
                       onPressed: _showAddUserDialog,
@@ -162,8 +153,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                             ),
                             IconButton(
                               icon: const Icon(Icons.password, color: Colors.blueAccent),
-                              onPressed: () => _showChangePasswordDialog(user),
-                              tooltip: 'Şifre Değiştir',
+                              onPressed: () => _showEditUserDialog(user),
+                              tooltip: 'Düzenle',
                             ),
                             if (user['role'] != 'admin')
                               IconButton(
@@ -184,30 +175,142 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   void _showAddUserDialog() {
-      // Keep existing dialog logic but add API Integration later
-      // For now ui only
-     showDialog(
-       context: context,
-       builder: (context) => AlertDialog(
-         backgroundColor: const Color(0xFF1E1E1E),
-         title: const Text('Yeni Personel Ekle', style: TextStyle(color: Colors.white)),
-         content: const Text("Coming Soon", style: TextStyle(color: Colors.white)),
-          actions: [TextButton(onPressed: ()=>Navigator.pop(context), child: const Text('OK'))]
-       )
-     );
+     _showUserDialog();
   }
 
-  void _showChangePasswordDialog(Map<String, dynamic> user) {
-     // Keep existing logic or dummy
-     showDialog(
-       context: context,
-       builder: (context) => AlertDialog(
-         backgroundColor: const Color(0xFF1E1E1E),
-         title: Text('Şifre Değiştir: ${user['name']}', style: const TextStyle(color: Colors.white)),
-         content: const Text("Coming Soon", style: TextStyle(color: Colors.white)),
-         actions: [TextButton(onPressed: ()=>Navigator.pop(context), child: const Text('OK'))]
-       )
-     );
+  void _showEditUserDialog(Map<String, dynamic> user) {
+     _showUserDialog(editUser: user);
+  }
+
+  void _showUserDialog({Map<String, dynamic>? editUser}) {
+    final codeController = TextEditingController(text: editUser?['personelCode'] ?? '');
+    final nameController = TextEditingController(text: editUser?['name'] ?? '');
+    final passwordController = TextEditingController();
+    String role = editUser?['role'] ?? 'user';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(editUser == null ? 'Yeni Personel Ekle' : 'Personel Düzenle', style: const TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: codeController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'Personel Kodu', labelStyle: TextStyle(color: Colors.white70)),
+            ),
+            TextField(
+              controller: nameController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'Ad Soyad', labelStyle: TextStyle(color: Colors.white70)),
+            ),
+            TextField(
+              controller: passwordController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: editUser == null ? 'Şifre' : 'Yeni Şifre (opsiyonel)',
+                labelStyle: const TextStyle(color: Colors.white70),
+              ),
+            ),
+            DropdownButtonFormField<String>(
+              value: role,
+              dropdownColor: const Color(0xFF1E1E1E),
+              decoration: const InputDecoration(labelText: 'Rol', labelStyle: TextStyle(color: Colors.white70)),
+              items: const [
+                DropdownMenuItem(value: 'user', child: Text('Personel', style: TextStyle(color: Colors.white))),
+                DropdownMenuItem(value: 'admin', child: Text('Admin', style: TextStyle(color: Colors.white))),
+              ],
+              onChanged: (val) {
+                if (val != null) role = val;
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+          ElevatedButton(
+            onPressed: () async {
+              final code = codeController.text.trim();
+              final name = nameController.text.trim();
+              final pass = passwordController.text.trim();
+              if (code.isEmpty || name.isEmpty || (editUser == null && pass.isEmpty)) {
+                return;
+              }
+              if (editUser == null) {
+                await _createUser(code, name, role, pass);
+              } else {
+                await _updateUser(editUser['id'], code, name, role, pass);
+              }
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createUser(String code, String name, String role, String password) async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final response = await http.post(
+        Uri.parse('${AuthService.baseUrl}/api/users'),
+        headers: {
+          'Authorization': 'Bearer ${authService.token}',
+          'Content-Type': 'application/json'
+        },
+        body: jsonEncode({
+          'personelCode': code,
+          'name': name,
+          'role': role,
+          'password': password,
+        }),
+      );
+      if (response.statusCode == 200) {
+        await _fetchUsers();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ekleme hatası: ${response.statusCode}')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+      }
+    }
+  }
+
+  Future<void> _updateUser(int id, String code, String name, String role, String password) async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final body = {
+        'personelCode': code,
+        'name': name,
+        'role': role,
+      };
+      if (password.isNotEmpty) body['password'] = password;
+      final response = await http.put(
+        Uri.parse('${AuthService.baseUrl}/api/users/$id'),
+        headers: {
+          'Authorization': 'Bearer ${authService.token}',
+          'Content-Type': 'application/json'
+        },
+        body: jsonEncode(body),
+      );
+      if (response.statusCode == 200) {
+        await _fetchUsers();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Güncelleme hatası: ${response.statusCode}')));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+      }
+    }
   }
 
   Widget _buildAvatarWithId({

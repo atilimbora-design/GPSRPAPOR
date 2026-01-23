@@ -8,6 +8,7 @@ import 'dart:async';
 import '../services/socket_service.dart';
 import '../services/auth_service.dart';
 import 'chat_screen.dart';
+import 'admin_chat_panel_screen.dart';
 
 class AdminMapScreen extends StatefulWidget {
   const AdminMapScreen({super.key});
@@ -30,6 +31,25 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
   static const _initialLat = 38.4192;
   static const _initialLng = 27.1287;
   double _currentZoom = 12.0;
+  int _depotFocusIndex = 0;
+
+  final List<Map<String, dynamic>> _depots = [
+    {
+      'name': 'Merkez Depo',
+      'lat': 38.438922448545654,
+      'lng': 27.227150386506576,
+    },
+    {
+      'name': 'Edremit Depo',
+      'lat': 39.614296,
+      'lng': 26.947969,
+    },
+    {
+      'name': 'Bergama Depo',
+      'lat': 39.116981926245465,
+      'lng': 27.196848095354138,
+    }
+  ];
 
   @override
   void initState() {
@@ -107,6 +127,14 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
         const SnackBar(content: Text('Bu kullanıcının aktif konumu yok.')),
       );
     }
+  }
+
+  void _cycleDepotFocus() {
+    final depot = _depots[_depotFocusIndex];
+    _mapController.move(LatLng(depot['lat'], depot['lng']), 14);
+    setState(() {
+      _depotFocusIndex = (_depotFocusIndex + 1) % _depots.length;
+    });
   }
 
   bool _isOnlineFromTimestamp(String? timestamp) {
@@ -193,8 +221,38 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.atilimgida.gpsrapor',
                     ),
+                    CircleLayer(
+                      circles: _depots.map((d) {
+                        return CircleMarker(
+                          point: LatLng(d['lat'], d['lng']),
+                          radius: 200,
+                          color: Colors.orange.withOpacity(0.15),
+                          borderStrokeWidth: 2,
+                          borderColor: Colors.orangeAccent,
+                        );
+                      }).toList(),
+                    ),
                     MarkerLayer(
-                      markers: _userLocations.values.map((loc) {
+                      markers: [
+                        ..._depots.map((d) => Marker(
+                              point: LatLng(d['lat'], d['lng']),
+                              width: 140,
+                              height: 60,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.orangeAccent, width: 1),
+                                ),
+                                child: Text(
+                                  d['name'],
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            )),
+                        ..._userLocations.values.map((loc) {
                         final userId = loc['userId'] ?? loc['id'];
                         final fullUser = _allUsers.firstWhere((u) => u['id'] == userId, orElse: () => {});
                         final avatarUrl = loc['avatar'] ?? fullUser['avatar'];
@@ -248,6 +306,7 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                           ),
                         );
                       }).toList(),
+                      ],
                     ),
                   ],
                 ),
@@ -287,7 +346,7 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                         backgroundColor: const Color(0xFFE65100),
                         child: const Icon(Icons.center_focus_strong, color: Colors.white),
                         onPressed: () {
-                          _mapController.move(const LatLng(_initialLat, _initialLng), 12);
+                          _cycleDepotFocus();
                         },
                       ),
                     ],
@@ -367,10 +426,12 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                             trailing: IconButton(
                               icon: const Icon(Icons.chat_bubble_outline, color: Colors.blueAccent),
                               onPressed: () {
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
-                                  targetId: userId.toString(), 
-                                  targetName: user['name']
-                                )));
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (_) => AdminChatPanelScreen(
+                                    initialUserId: userId,
+                                    initialUserName: user['name'],
+                                  ),
+                                ));
                               },
                             ),
                           );

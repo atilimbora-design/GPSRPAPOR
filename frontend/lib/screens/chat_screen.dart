@@ -41,6 +41,15 @@ class _ChatScreenState extends State<ChatScreen> {
         _addMessageFromSocket(data);
       }
     });
+
+    // Group join
+    if (widget.targetId.startsWith('group_')) {
+      socketService.socket?.on('connect', (_) {
+        socketService.socket?.emit('joinGroup', widget.targetId);
+      });
+      // best-effort in case already connected
+      socketService.socket?.emit('joinGroup', widget.targetId);
+    }
   }
 
   void _ensureSocketConnected() {
