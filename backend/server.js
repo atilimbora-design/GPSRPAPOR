@@ -467,6 +467,12 @@ app.post('/api/reports', authenticateToken, async (req, res) => {
             UserId: req.user.id
         });
 
+        io.to('admins').emit('reportCreated', {
+            reportId: report.id,
+            userId: req.user.id,
+            date: report.date
+        });
+
         res.json({ success: true, message: 'Rapor başarıyla kaydedildi', reportId: report.id });
     } catch (e) {
         console.error('Rapor kaydetme hatası:', e);

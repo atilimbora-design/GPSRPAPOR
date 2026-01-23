@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service.dart';
+import '../services/socket_service.dart';
 import 'report_detail_screen.dart';
 
 class AdminReportsScreen extends StatefulWidget {
@@ -18,10 +19,32 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
   String _timeFilter = 'month';
   DateTimeRange? _customRange;
   int? _selectedUserId;
+  SocketService? _socketService;
 
   @override
   void initState() {
     super.initState();
+    _fetchReports();
+    _attachSocket();
+  }
+
+  @override
+  void dispose() {
+    _socketService?.socket?.off('reportCreated', _onReportCreated);
+    super.dispose();
+  }
+
+  void _attachSocket() {
+    final socketService = Provider.of<SocketService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.token != null) {
+      socketService.connect(authService.token!);
+    }
+    _socketService = socketService;
+    socketService.socket?.on('reportCreated', _onReportCreated);
+  }
+
+  void _onReportCreated(dynamic _) {
     _fetchReports();
   }
 

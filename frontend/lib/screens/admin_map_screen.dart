@@ -429,6 +429,8 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                           
                           // Online kontrolü
                           final isOnline = _isOnlineFromTimestamp(loc?['timestamp'] ?? user['lastSeen']);
+                          final lastLogout = user['lastLogout'];
+                          final isLoggedOut = lastLogout != null && (!isOnline);
 
                           return ListTile(
                             onTap: () => _centerOnUser(userId),
@@ -455,7 +457,7 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                               ],
                             ),
                             title: Text(user['name'], style: const TextStyle(color: Colors.white)),
-                            subtitle: loc != null 
+                            subtitle: isOnline && loc != null
                                 ? Row(
                                     children: [
                                       const Icon(Icons.speed, size: 14, color: Colors.orangeAccent),
@@ -464,7 +466,7 @@ class _AdminMapScreenState extends State<AdminMapScreen> {
                                     ],
                                   )
                                 : Text(
-                                    _formatLastSeen(user['lastSeen'], user['lastLogout']),
+                                    isLoggedOut ? 'Çıkış yapıldı' : _formatLastSeen(user['lastSeen'], user['lastLogout']),
                                     style: const TextStyle(color: Colors.white24, fontSize: 12),
                                   ),
                             trailing: IconButton(
