@@ -223,7 +223,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
                             const SizedBox(height: 5),
                             Text(
-                              DateFormat('HH:mm').format(DateTime.parse(msg['timestamp'] ?? DateTime.now().toIso8601String()).toLocal()),
+                              DateFormat('HH:mm').format(
+                                DateTime.parse(
+                                  (msg['timestamp'] ?? msg['createdAt'] ?? DateTime.now().toIso8601String()).toString(),
+                                ).toLocal(),
+                              ),
                               style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.7)),
                               textAlign: TextAlign.end,
                             )

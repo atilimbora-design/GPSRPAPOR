@@ -573,7 +573,11 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                                       
                                       const SizedBox(height: 5),
                                       Text(
-                                        DateFormat('HH:mm').format(DateTime.parse(msg['timestamp'] ?? DateTime.now().toIso8601String()).toLocal()),
+                                        DateFormat('HH:mm').format(
+                                          DateTime.parse(
+                                            (msg['timestamp'] ?? msg['createdAt'] ?? DateTime.now().toIso8601String()).toString(),
+                                          ).toLocal(),
+                                        ),
                                         style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10),
                                       ),
                                     ],

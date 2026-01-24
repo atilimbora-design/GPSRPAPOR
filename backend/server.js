@@ -406,13 +406,14 @@ io.on('connection', (socket) => {
                 timestamp: new Date()
             });
 
+            const msgTimestamp = savedMsg.timestamp || savedMsg.createdAt || new Date();
             const messagePayload = {
                 id: savedMsg.id,
                 from: socket.user.id,
                 fromName: socket.user.name,
                 message: savedMsg.content,
                 type: savedMsg.type,
-                timestamp: savedMsg.timestamp,
+                timestamp: msgTimestamp,
                 to: data.to
             };
 
@@ -650,11 +651,16 @@ app.get('/api/messages/:target', authenticateToken, async (req, res) => {
 
         const messages = await Message.findAll({
             where: whereClause,
-            order: [['timestamp', 'ASC']],
+            order: [['createdAt', 'ASC']],
             limit: 100
         });
 
-        res.json(messages);
+        const serialized = messages.map((m) => {
+            const obj = m.toJSON();
+            if (!obj.timestamp) obj.timestamp = obj.createdAt;
+            return obj;
+        });
+        res.json(serialized);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
