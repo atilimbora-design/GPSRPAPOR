@@ -400,6 +400,10 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Text('Personeller', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
                         ),
+                        if (_users.isEmpty)
+                          const ListTile(
+                            title: Text('Kullanıcı bulunamadı', style: TextStyle(color: Colors.white54)),
+                          ),
                         ..._users.map((user) {
                           final isSelected = user['id'] == _selectedUserId;
                           return ListTile(

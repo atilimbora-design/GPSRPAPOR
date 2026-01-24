@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Arka plan izni (Android 10+)
       // Kullanıcıdan "Her zaman izin ver" seçmesini istemek gerekebilir
       await Permission.locationAlways.request();
+      await Permission.ignoreBatteryOptimizations.request();
       // GPS Servisini Başlat (Sadece Mobil ve Admin Değilse)
       final user = Provider.of<AuthService>(context, listen: false).user;
       if (!kIsWeb && user?['role'] != 'admin') {

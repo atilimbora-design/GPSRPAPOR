@@ -44,15 +44,17 @@ const authenticateToken = (req, res, next) => {
 // Login API
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
+    const normalizedUsername = (username || '').toString().trim();
+    const normalizedPassword = (password || '').toString();
 
     // Username admin ise veya ID ise
-    const user = await User.findOne({ where: { personelCode: username } });
+    const user = await User.findOne({ where: { personelCode: normalizedUsername } });
 
     if (!user) {
         return res.status(400).json({ message: 'Kullanıcı bulunamadı' });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
+    const validPassword = await bcrypt.compare(normalizedPassword, user.password);
     if (!validPassword) {
         return res.status(400).json({ message: 'Şifre hatalı' });
     }
@@ -104,24 +106,25 @@ app.post('/api/users', authenticateToken, async (req, res) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
     try {
         const { personelCode, name, role = 'user', password } = req.body;
-        if (!personelCode || !name || !password) {
+        const normalizedCode = (personelCode || '').toString().trim();
+        if (!normalizedCode || !name || !password) {
             return res.status(400).json({ error: 'personelCode, name, password zorunlu' });
         }
 
-        const exists = await User.findOne({ where: { personelCode } });
+        const exists = await User.findOne({ where: { personelCode: normalizedCode } });
         if (exists) return res.status(409).json({ error: 'Bu personel kodu zaten var' });
 
         const hashed = await bcrypt.hash(password, 10);
         const user = await User.create({
-            personelCode,
-            username: personelCode,
+            personelCode: normalizedCode,
+            username: normalizedCode,
             name,
             password: hashed,
             role
         });
 
         // Klasör yapısını oluştur
-        const userFolder = path.join(__dirname, 'personel', `${personelCode}_${name.replace(/\s+/g, '_')}`, 'raporlar');
+        const userFolder = path.join(__dirname, 'personel', `${normalizedCode}_${name.replace(/\s+/g, '_')}`, 'raporlar');
         fs.mkdirSync(userFolder, { recursive: true });
 
         res.json({ id: user.id, personelCode: user.personelCode, name: user.name, role: user.role, avatar: user.avatar });
@@ -139,11 +142,12 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
         const user = await User.findByPk(id);
         if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
 
-        if (personelCode && personelCode !== user.personelCode) {
-            const exists = await User.findOne({ where: { personelCode } });
+        if (personelCode && personelCode.toString().trim() !== user.personelCode) {
+            const normalizedCode = personelCode.toString().trim();
+            const exists = await User.findOne({ where: { personelCode: normalizedCode } });
             if (exists) return res.status(409).json({ error: 'Bu personel kodu zaten var' });
-            user.personelCode = personelCode;
-            user.username = personelCode;
+            user.personelCode = normalizedCode;
+            user.username = normalizedCode;
         }
         if (name) user.name = name;
         if (role) user.role = role;
