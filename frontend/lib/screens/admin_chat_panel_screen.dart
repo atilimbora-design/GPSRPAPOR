@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'dart:async';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../services/auth_service.dart';
 import '../services/socket_service.dart';
 import 'chat_screen.dart';
@@ -28,6 +30,9 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
   bool _isLoadingGroups = true;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _refreshTimer;
+  FlutterLocalNotificationsPlugin? _notifications;
 
   @override
   void initState() {
@@ -35,9 +40,30 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
     _fetchUsers();
     _fetchGroups();
     _ensureSocketConnected();
+    _initNotifications();
     
     final socketService = Provider.of<SocketService>(context, listen: false);
     socketService.socket?.on('newMessage', _handleNewMessage);
+
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _fetchUsers();
+      _fetchGroups();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initNotifications() async {
+    _notifications = FlutterLocalNotificationsPlugin();
+    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const ios = DarwinInitializationSettings();
+    const initSettings = InitializationSettings(android: android, iOS: ios);
+    await _notifications?.initialize(initSettings);
   }
 
   void _handleNewMessage(dynamic data) {
@@ -70,6 +96,26 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
            }
         });
       }
+    }
+
+    // Desktop notification for new messages
+    final fromId = data['from']?.toString();
+    final isSelected = _selectedUserId?.toString() == fromId;
+    if (!isSelected && fromId != null && data['message'] != null) {
+      _notifications?.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        data['fromName']?.toString() ?? 'Yeni Mesaj',
+        data['message']?.toString(),
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'gpsrapor_messages',
+            'Mesaj Bildirimleri',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+      );
     }
   }
 
@@ -332,6 +378,19 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final search = _searchController.text.trim().toLowerCase();
+    final filteredUsers = _users.where((u) {
+      if (search.isEmpty) return true;
+      final name = (u['name'] ?? '').toString().toLowerCase();
+      final code = (u['personelCode'] ?? '').toString().toLowerCase();
+      return name.contains(search) || code.contains(search);
+    }).toList();
+    final filteredGroups = _groups.where((g) {
+      if (search.isEmpty) return true;
+      final name = (g['name'] ?? '').toString().toLowerCase();
+      return name.contains(search);
+    }).toList();
+
     return Row(
       children: [
         // SOL PANEL: Kullanıcı Listesi
@@ -349,10 +408,29 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                     const Text('Mesajlar', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     IconButton(
                         icon: const Icon(Icons.refresh, color: Colors.white70),
-                        onPressed: _fetchUsers,
+                        onPressed: () {
+                          _fetchUsers();
+                          _fetchGroups();
+                        },
                         tooltip: 'Listeyi Yenile',
                     ),
                   ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Ara (isim / kod)',
+                    hintStyle: const TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: const Color(0xFF2C2C2C),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                  ),
                 ),
               ),
               Padding(
@@ -382,7 +460,11 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             child: Text('Gruplar', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
                           ),
-                          ..._groups.map((g) => ListTile(
+                          if (filteredGroups.isEmpty)
+                            const ListTile(
+                              title: Text('Grup yok', style: TextStyle(color: Colors.white54)),
+                            ),
+                          ...filteredGroups.map((g) => ListTile(
                                 leading: const Icon(Icons.group, color: Colors.blueAccent),
                                 title: Text(g['name'], style: const TextStyle(color: Colors.white)),
                                 onTap: () {
@@ -400,11 +482,11 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
                           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Text('Personeller', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
                         ),
-                        if (_users.isEmpty)
+                        if (filteredUsers.isEmpty)
                           const ListTile(
                             title: Text('Kullanıcı bulunamadı', style: TextStyle(color: Colors.white54)),
                           ),
-                        ..._users.map((user) {
+                        ...filteredUsers.map((user) {
                           final isSelected = user['id'] == _selectedUserId;
                           return ListTile(
                             tileColor: isSelected ? const Color(0xFFE65100).withOpacity(0.3) : null,
