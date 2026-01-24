@@ -26,8 +26,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   Future<void> _fetchUsers() async {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
+      final uri = Uri.parse('${AuthService.baseUrl}/api/users')
+          .replace(queryParameters: {'t': DateTime.now().millisecondsSinceEpoch.toString()});
       final response = await http.get(
-        Uri.parse('${AuthService.baseUrl}/api/users'),
+        uri,
         headers: {'Authorization': 'Bearer ${authService.token}'}
       );
 
@@ -276,6 +278,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         }),
       );
       if (response.statusCode == 200) {
+        try {
+          final created = jsonDecode(response.body);
+          if (created is Map && created['id'] != null) {
+            setState(() {
+              _users = [
+                created,
+                ..._users.where((u) => u['id'] != created['id']),
+              ];
+            });
+          }
+        } catch (_) {}
         await _fetchUsers();
       } else {
         if (mounted) {

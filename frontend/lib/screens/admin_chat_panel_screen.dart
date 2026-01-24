@@ -122,8 +122,10 @@ class _AdminChatPanelScreenState extends State<AdminChatPanelScreen> {
   Future<void> _fetchUsers() async {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
+      final uri = Uri.parse('${AuthService.baseUrl}/api/users')
+          .replace(queryParameters: {'t': DateTime.now().millisecondsSinceEpoch.toString()});
       final response = await http.get(
-        Uri.parse('${AuthService.baseUrl}/api/users'),
+        uri,
         headers: {'Authorization': 'Bearer ${authService.token}'}
       );
 
