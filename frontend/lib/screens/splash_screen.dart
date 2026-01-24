@@ -26,11 +26,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _startLoading();
     _checkAuth();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      UpdateService.checkForUpdate(context);
+      _checkUpdateThenStart();
     });
+  }
+
+  Future<void> _checkUpdateThenStart() async {
+    await UpdateService.checkForUpdate(context);
+    if (!mounted) return;
+    _startLoading();
   }
 
   Future<void> _checkAuth() async {

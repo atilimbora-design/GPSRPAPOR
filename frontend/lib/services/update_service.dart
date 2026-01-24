@@ -6,13 +6,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'auth_service.dart';
 
 class UpdateService {
-  static Future<void> checkForUpdate(BuildContext context) async {
+  static Future<bool> checkForUpdate(BuildContext context) async {
     try {
       final info = await PackageInfo.fromPlatform();
       final localCode = int.tryParse(info.buildNumber) ?? 0;
 
       final response = await http.get(Uri.parse('${AuthService.baseUrl}/app/version'));
-      if (response.statusCode != 200) return;
+      if (response.statusCode != 200) return false;
 
       final data = jsonDecode(response.body);
       final remoteCode = (data['versionCode'] as num?)?.toInt() ?? 0;
@@ -20,7 +20,7 @@ class UpdateService {
       final apkUrl = data['apkUrl']?.toString();
 
       if (remoteCode > localCode && apkUrl != null && apkUrl.isNotEmpty) {
-        if (!context.mounted) return;
+        if (!context.mounted) return false;
         await showDialog(
           context: context,
           barrierDismissible: false,
@@ -46,7 +46,9 @@ class UpdateService {
             ],
           ),
         );
+        return true;
       }
     } catch (_) {}
+    return false;
   }
 }
