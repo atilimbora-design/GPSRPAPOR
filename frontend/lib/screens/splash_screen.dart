@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import '../services/auth_service.dart';
+import '../services/update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -27,6 +28,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.initState();
     _startLoading();
     _checkAuth();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.checkForUpdate(context);
+    });
   }
 
   Future<void> _checkAuth() async {
@@ -117,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         fit: BoxFit.cover,
                       )
                     : null,
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 10))
                 ]
               ),

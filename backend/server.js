@@ -8,6 +8,7 @@ const { Op, DataTypes } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
+const fsPromises = require('fs/promises');
 
 require('dotenv').config();
 
@@ -254,6 +255,25 @@ app.post('/api/users/avatar', authenticateToken, async (req, res) => {
         res.json({ success: true, avatarUrl });
     } catch (e) {
         console.error('Avatar yükleme hatası:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Mobile app version check
+app.get('/app/version', async (req, res) => {
+    try {
+        const versionPath = path.join(__dirname, 'app_version.json');
+        if (!fs.existsSync(versionPath)) {
+            return res.json({ versionCode: 0, versionName: '0.0.0', apkUrl: null });
+        }
+        const raw = await fsPromises.readFile(versionPath, 'utf8');
+        const data = JSON.parse(raw);
+        res.json({
+            versionCode: Number(data.versionCode || 0),
+            versionName: data.versionName || '0.0.0',
+            apkUrl: data.apkUrl || null
+        });
+    } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
