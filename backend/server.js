@@ -596,6 +596,7 @@ app.get('/api/stats/user', authenticateToken, async (req, res) => {
 app.get('/api/messages/:target', authenticateToken, async (req, res) => {
     try {
         const target = req.params.target;
+        if (!target) return res.status(400).json({ error: 'target zorunlu' });
         let whereClause = {};
 
     if (target === 'admins' || target === 'admin') {
@@ -612,9 +613,17 @@ app.get('/api/messages/:target', authenticateToken, async (req, res) => {
         }
         } else if (target.startsWith('group_')) {
             const groupIdNum = parseInt(target.replace('group_', ''), 10);
+            if (Number.isNaN(groupIdNum)) {
+                return res.status(400).json({ error: 'Geçersiz grup' });
+            }
             const group = await Group.findByPk(groupIdNum);
             if (!group) return res.status(404).json({ error: 'Grup bulunamadı' });
-            const members = Array.isArray(group.members) ? group.members : JSON.parse(group.members || '[]');
+            let members = [];
+            try {
+                members = Array.isArray(group.members) ? group.members : JSON.parse(group.members || '[]');
+            } catch (_) {
+                members = [];
+            }
             if (req.user.role !== 'admin' && !members.includes(req.user.id)) {
                 return res.status(403).json({ error: 'Bu gruba erişiminiz yok' });
             }
