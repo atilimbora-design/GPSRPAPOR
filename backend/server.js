@@ -11,7 +11,7 @@ const path = require('path');
 // Database
 const db = require('./config/database');
 
-// Routes (Placeholder for now)
+// Routes
 const authRoutes = require('./routes/auth');
 const gpsRoutes = require('./routes/gps');
 const productRoutes = require('./routes/products');
@@ -31,20 +31,23 @@ const cronJobs = require('./cron/jobs');
 const app = express();
 const server = http.createServer(app);
 
-const corsOrigins = process.env.SOCKET_CORS_ORIGIN ? process.env.SOCKET_CORS_ORIGIN.split(',') : ['http://localhost:3000'];
+const allowedOrigins = process.env.SOCKET_CORS_ORIGIN ? process.env.SOCKET_CORS_ORIGIN.split(',') : "*";
 
+// Allow all origins for dev simplicity (Update for prod later)
 const io = socketIo(server, {
     cors: {
-        origin: corsOrigins,
-        credentials: true
+        origin: allowedOrigins,
+        methods: ["GET", "POST"]
     }
 });
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+}));
 app.use(cors({
-    origin: corsOrigins,
-    credentials: true
+    origin: allowedOrigins, // Allow all REST calls too
 }));
 app.use(morgan('combined'));
 app.use(express.json());
@@ -67,9 +70,18 @@ const fs = require('fs');
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve Admin Panel Static Files
+app.use(express.static(path.join(__dirname, 'public')));
+
 // API Routes
 app.get('/', (req, res) => {
-    res.json({ message: 'Atilim Gida Backend API is running' });
+    // Always try to serve index.html for root request
+    const publicIndex = path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(publicIndex)) {
+        res.sendFile(publicIndex);
+    } else {
+        res.json({ message: 'Atilim Gida Backend API is running. Admin panel not found in public/.' });
+    }
 });
 
 app.use('/api/auth', authRoutes);
@@ -89,6 +101,19 @@ app.get('/health', (req, res) => {
         message: 'Server is running',
         timestamp: new Date().toISOString()
     });
+});
+
+// SPA Fallback (For React Routing) - Must be after API routes
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+        return next();
+    }
+    const publicIndex = path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(publicIndex)) {
+        res.sendFile(publicIndex);
+    } else {
+        next();
+    }
 });
 
 // 404 handler
