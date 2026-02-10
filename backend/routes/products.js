@@ -7,6 +7,9 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 router.get('/', authenticateToken, productController.getAllProductsWithNewLogic);
 router.post('/:productId/favorite', authenticateToken, productController.toggleFavorite);
 
-// Admin: Manage products logic can be added later (POST, PUT, DELETE)
+// Admin: Manage products logic
+router.post('/', authenticateToken, requireAdmin, productController.createProduct);
+router.put('/:id', authenticateToken, requireAdmin, productController.updateProduct);
+router.delete('/:id', authenticateToken, requireAdmin, productController.deleteProduct);
 
 module.exports = router;

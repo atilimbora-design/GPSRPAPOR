@@ -16,4 +16,13 @@ router.post('/:groupId/members', authenticateToken, groupController.addMembers);
 // Leave Group
 router.post('/:groupId/leave', authenticateToken, groupController.leaveGroup);
 
+// Remove Member
+router.delete('/:groupId/members', authenticateToken, groupController.removeMember);
+
+// Update Status
+router.put('/:groupId/status', authenticateToken, groupController.updateGroupStatus);
+
+// Delete Group
+router.delete('/:groupId', authenticateToken, groupController.deleteGroup);
+
 module.exports = router;

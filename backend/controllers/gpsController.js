@@ -55,33 +55,43 @@ exports.getLiveLocations = (req, res) => {
         u.id as user_id, 
         u.full_name, 
         u.profile_photo,
-        g.latitude, 
-        g.longitude, 
-        g.speed, 
-        g.battery_level, 
-        g.accuracy, 
-        g.is_online, 
-        g.timestamp as last_update
+        u.latitude, 
+        u.longitude, 
+        COALESCE(u.speed, 0) as speed, 
+        COALESCE(u.battery_level, 100) as battery_level, 
+        0 as accuracy, 
+        CASE 
+            WHEN u.last_location_update IS NOT NULL 
+            AND datetime(u.last_location_update) > datetime('now', '-5 minutes')
+            THEN 1 
+            ELSE 0 
+        END as is_online,
+        u.last_location_update as last_update
     FROM users u
-    LEFT JOIN gps_locations g ON g.id = (
-        SELECT id FROM gps_locations 
-        WHERE user_id = u.id 
-        ORDER BY timestamp DESC 
-        LIMIT 1
-    )
     WHERE u.role = 'personel'
   `;
 
     if (active_only === 'true') {
-        // Basic filtering logic - in reality "active" might depend on "last_update" diff
-        sql += ` AND g.is_online = 1`;
+        // Only show users who updated location in last 5 minutes
+        sql += ` AND datetime(u.last_location_update) > datetime('now', '-5 minutes')`;
     }
 
     db.all(sql, [], (err, rows) => {
         if (err) {
             return res.status(500).json({ success: false, error: err.message });
         }
-        res.json({ success: true, locations: rows });
+
+        // Convert last_update timestamps to Turkey timezone (UTC+3)
+        const processedRows = rows.map(row => {
+            if (row.last_update) {
+                const utcDate = new Date(row.last_update);
+                const turkeyDate = new Date(utcDate.getTime() + (3 * 60 * 60 * 1000));
+                row.last_update = turkeyDate.toISOString();
+            }
+            return row;
+        });
+
+        res.json({ success: true, locations: processedRows });
     });
 };
 

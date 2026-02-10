@@ -16,4 +16,10 @@ router.get('/direct/:userId', authenticateToken, messageController.getDirectMess
 // Get Chat History (Group)
 router.get('/group/:groupId', authenticateToken, messageController.getGroupMessages);
 
+// Delete Message
+router.delete('/:messageId', authenticateToken, messageController.deleteMessage);
+
+// Clear Chat
+router.post('/clear', authenticateToken, messageController.clearChat);
+
 module.exports = router;

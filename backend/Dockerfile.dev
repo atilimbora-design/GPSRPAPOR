@@ -1,0 +1,31 @@
+FROM node:18-alpine
+
+# Install development tools
+RUN apk add --no-cache \
+    curl \
+    git \
+    python3 \
+    make \
+    g++
+
+WORKDIR /app
+
+# Copy package files
+COPY backend/package*.json ./
+COPY backend/tsconfig.json ./
+COPY backend/.eslintrc.js ./
+
+# Install dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy source code
+COPY backend/src ./src
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/uploads /app/logs
+
+# Expose ports
+EXPOSE 3000 9229
+
+# Development command with hot reload and debugging
+CMD ["npm", "run", "dev"]

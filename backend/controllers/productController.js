@@ -103,28 +103,10 @@ exports.getAllProducts = (req, res) => {
 };
 
 exports.toggleFavorite = (req, res) => {
-    // Since we don't have a dedicated 'favorites' table in the PROMPT Schema,
-    // but we have a requirement to toggle it.
-    // The 'order_items' table having 'is_favorite' is weird for a general "Product Favorite" toggle that isn't attached to an order directly.
-    // If we follow the "order_items" path, we'd need an active order? NO.
-    // Recommendation: The Prompt likely implied a favorites concept.
-    // I will implement a 'user_favorites' table implicitly/dynamically here or just hack the order_items.
-    // BETTER SOLUTION: To strictly follow the plan but make it work, I'll create a table "user_favorites" if not exists NOW.
-    // Or simpler: The user probably forgot to list 'favorites' table in schema but put 'is_favorite' in order_items.
-    // Actually, 'order_items.is_favorite' might mean "This item IN THIS ORDER is marked specially".
-    // STARTING IMPROVISATION: I will create a simple 'favorites' table migration on the fly in the controller? No, bad practice.
-    // I will check if I can just use a dummy order or if I missed something.
-    // Let's stick to the most logical path: Creates a 'user_favorites' table is the right way.
-    // But I can't change schema easily without running migration script again. 
-    // I WILL USE 'order_items' trick:
-    // To "Favorite" a product, we ensure the MOST RECENT order_item for this user/product has is_favorite=1.
-    // Actually, let's just create a `user_favorites` table in the database right now via code to be safe and robust.
-
     const { productId } = req.params;
     const { is_favorite } = req.body;
     const userId = req.user.id;
 
-    // We'll create the table if it's missing (Safe-guard for "forgotten" schema requirements)
     db.run(`CREATE TABLE IF NOT EXISTS user_favorite_products (user_id INTEGER, product_id INTEGER, PRIMARY KEY(user_id, product_id))`, [], (err) => {
         if (err) console.error(err);
 
@@ -140,9 +122,62 @@ exports.toggleFavorite = (req, res) => {
             });
         }
     });
+};
 
-    // Note: I also need to update the getAllProducts query to use THIS table instead of the weird order_items logic I wrote above.
-    // I will rewrite getAllProducts below this block in the actual file.
+// --- Product Management (Admin) ---
+
+exports.createProduct = (req, res) => {
+    const { name, category, unit, is_active, sort_order } = req.body;
+
+    // Auto-generate Code
+    const code = name
+        .replace(/ /g, '_')
+        .replace(/\./g, '')
+        .replace(/–/g, '-')
+        .replace(/&/g, '')
+        .toUpperCase();
+
+    const sql = `INSERT INTO products (code, name, category, unit, is_active, sort_order) VALUES (?, ?, ?, ?, ?, ?)`;
+    const params = [code, name, category, unit || 'KOLI', is_active ? 1 : 0, sort_order || 999];
+
+    db.run(sql, params, function (err) {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        res.json({ success: true, message: 'Ürün başarıyla oluşturuldu', product: { id: this.lastID, ...req.body } });
+    });
+};
+
+exports.updateProduct = (req, res) => {
+    const { id } = req.params;
+    const { name, category, unit, is_active, sort_order, code } = req.body;
+
+    const sql = `
+        UPDATE products 
+        SET name = ?, category = ?, unit = ?, is_active = ?, sort_order = ?, code = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    `;
+    const params = [name, category, unit, is_active ? 1 : 0, sort_order, code, id];
+
+    db.run(sql, params, function (err) {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (this.changes === 0) return res.status(404).json({ success: false, error: 'Ürün bulunamadı' });
+        res.json({ success: true, message: 'Ürün güncellendi' });
+    });
+};
+
+exports.deleteProduct = (req, res) => {
+    const { id } = req.params;
+    // Hard delete for now as requested.
+    // If FK constraint fails (due to existing orders), we catch it.
+    db.run(`DELETE FROM products WHERE id = ?`, [id], function (err) {
+        if (err) {
+            if (err.message.includes('FOREIGN KEY')) {
+                return res.status(400).json({ success: false, error: 'Bu ürün geçmiş siparişlerde kullanıldığı için silinemez. Bunun yerine pasife alabilirsiniz.' });
+            }
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        if (this.changes === 0) return res.status(404).json({ success: false, error: 'Ürün bulunamadı' });
+        res.json({ success: true, message: 'Ürün silindi' });
+    });
 };
 
 // Re-implementing getAllProducts to use the new table for consistency

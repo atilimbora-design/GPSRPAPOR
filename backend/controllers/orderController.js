@@ -97,6 +97,7 @@ exports.saveOrder = (req, res) => {
                             });
                             stmt.finalize(() => {
                                 db.run('COMMIT');
+                                req.io.emit('order_update', { date: today, user_id: userId });
                                 res.json({ success: true, message: 'Sipariş güncellendi', order: { id: orderId, order_date: today, total_items: totalItems } });
                             });
                         });
@@ -114,6 +115,7 @@ exports.saveOrder = (req, res) => {
                         });
                         stmt.finalize(() => {
                             db.run('COMMIT');
+                            req.io.emit('order_update', { date: today, user_id: userId });
                             res.json({ success: true, message: 'Sipariş oluşturuldu', order: { id: orderId, order_date: today, total_items: totalItems } });
                         });
                     });
@@ -160,6 +162,9 @@ exports.getAllOrders = (req, res) => {
     const { date, user_id } = req.query;
     const targetDate = date || new Date().toISOString().split('T')[0];
 
+    const fs = require('fs');
+    try { fs.appendFileSync('debug.log', `[${new Date().toISOString()}] getAllOrders params: date=${date} target=${targetDate} user=${user_id}\n`); } catch (e) { }
+
     let sql = `
         SELECT o.*, u.full_name, u.username 
         FROM orders o
@@ -174,7 +179,11 @@ exports.getAllOrders = (req, res) => {
     }
 
     db.all(sql, params, async (err, orders) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (err) {
+            try { fs.appendFileSync('debug.log', `getAllOrders ERROR: ${err.message}\n`); } catch (e) { }
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        try { fs.appendFileSync('debug.log', `getAllOrders found ${orders.length} orders\n`); } catch (e) { }
 
         // Populate items for each order
         // Doing this in loop for simplicity, can be optimized with one big JOIN
@@ -280,4 +289,74 @@ exports.exportExcel = async (req, res) => {
         console.error(err);
         res.status(500).json({ success: false, error: 'Excel oluşturma hatası' });
     }
+};
+
+exports.getOrderDetails = (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    db.get(`SELECT * FROM orders WHERE id = ?`, [id], (err, order) => {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (!order) return res.status(404).json({ success: false, error: 'Sipariş bulunamadı' });
+
+        // Check ownership (if not admin)
+        if (req.user.role !== 'admin' && order.user_id !== userId) {
+            return res.status(403).json({ success: false, error: 'Bu siparişi görüntüleme yetkiniz yok' });
+        }
+
+        db.all(`
+            SELECT oi.*, p.code as product_code, p.name as product_name, p.unit 
+            FROM order_items oi
+            JOIN products p ON p.id = oi.product_id
+            WHERE oi.order_id = ?
+        `, [order.id], (err, items) => {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+
+            res.json({
+                success: true,
+                order: {
+                    ...order,
+                    is_locked: !!order.is_locked,
+                    items
+                }
+            });
+        });
+    });
+};
+
+exports.deleteOrder = (req, res) => {
+    const userId = req.user.id;
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+
+    if (now.getHours() >= 15) {
+        return res.status(400).json({ success: false, error: "Saat 15:00'dan sonra sipariş silinemez" });
+    }
+
+    db.get('SELECT id, is_locked FROM orders WHERE user_id = ? AND order_date = ?', [userId, today], (err, order) => {
+        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (!order) return res.status(404).json({ success: false, error: 'Silinecek sipariş bulunamadı' });
+        if (order.is_locked) return res.status(400).json({ success: false, error: 'Sipariş kilitli, silinemez' });
+
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION');
+            
+            db.run('DELETE FROM order_items WHERE order_id = ?', [order.id], (err) => {
+                if(err) {
+                    db.run('ROLLBACK');
+                    return res.status(500).json({ success: false, error: err.message });
+                }
+
+                db.run('DELETE FROM orders WHERE id = ?', [order.id], (err) => {
+                    if (err) {
+                        db.run('ROLLBACK');
+                        return res.status(500).json({ success: false, error: err.message });
+                    }
+                    db.run('COMMIT');
+                    if (req.io) req.io.emit('order_update', { date: today, user_id: userId });
+                    res.json({ success: true, message: 'Sipariş başarıyla silindi' });
+                });
+            });
+        });
+    });
 };

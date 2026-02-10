@@ -140,3 +140,57 @@ exports.leaveGroup = (req, res) => {
         });
     });
 };
+
+exports.removeMember = (req, res) => {
+    const { groupId } = req.params;
+    const { userId } = req.body; // User to be removed
+
+    // Check Admin Permission
+    db.get(`SELECT role FROM chat_group_members WHERE group_id = ? AND user_id = ?`, [groupId, req.user.id], (err, mem) => {
+        if (err || !mem || mem.role !== 'admin') {
+            return res.status(403).json({ success: false, error: 'Sadece grup yöneticisi üye çıkarabilir' });
+        }
+
+        db.run(`DELETE FROM chat_group_members WHERE group_id = ? AND user_id = ?`, [groupId, userId], (err) => {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+            res.json({ success: true, message: 'Üye çıkarıldı' });
+        });
+    });
+};
+
+exports.updateGroupStatus = (req, res) => {
+    const { groupId } = req.params;
+    const { is_active } = req.body; 
+
+    db.get('SELECT role FROM chat_group_members WHERE group_id = ? AND user_id = ?', [groupId, req.user.id], (err, mem) => {
+        const isGroupAdmin = mem && mem.role === 'admin';
+        const isSystemAdmin = req.user.role === 'admin';
+
+        if (!isGroupAdmin && !isSystemAdmin) {
+             return res.status(403).json({ success: false, error: 'Authorization failed' });
+        }
+
+        db.run('UPDATE chat_groups SET is_active = ? WHERE id = ?', [is_active ? 1 : 0, groupId], function(err) {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+             res.json({ success: true, message: 'Updated' });
+        });
+    });
+};
+
+exports.deleteGroup = (req, res) => {
+    const { groupId } = req.params;
+
+    db.get('SELECT role FROM chat_group_members WHERE group_id = ? AND user_id = ?', [groupId, req.user.id], (err, mem) => {
+        const isGroupAdmin = mem && mem.role === 'admin';
+        const isSystemAdmin = req.user.role === 'admin';
+
+        if (!isGroupAdmin && !isSystemAdmin) {
+             return res.status(403).json({ success: false, error: 'Authorization failed' });
+        }
+
+        db.run('DELETE FROM chat_groups WHERE id = ?', [groupId], function(err) {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+             res.json({ success: true, message: 'Group deleted' });
+        });
+    });
+};
