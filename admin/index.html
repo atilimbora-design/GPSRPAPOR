@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atılım Gıda - Admin Panel</title>
+  <style>
+    /* Custom Leaflet Marker Cleanup */
+    .custom-marker {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    /* Warehouse Tooltip Styling */
+    .warehouse-tooltip {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    .warehouse-tooltip::before {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>
