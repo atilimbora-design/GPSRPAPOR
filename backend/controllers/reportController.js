@@ -55,8 +55,15 @@ async function generatePDF(report, user, files) {
     const doc = new PDFDocument({ size: 'A4', margin: 40 });
     doc.pipe(stream);
 
-    doc.registerFont('Regular', 'C:/Windows/Fonts/arial.ttf');
-    doc.registerFont('Bold', 'C:/Windows/Fonts/arialbd.ttf');
+    const regularFont = path.join(__dirname, '../assets/fonts/arial.ttf');
+    const boldFont = path.join(__dirname, '../assets/fonts/arialbd.ttf');
+
+    if (fs.existsSync(regularFont)) doc.registerFont('Regular', regularFont);
+    else doc.font('Helvetica'); // Fallback
+
+    if (fs.existsSync(boldFont)) doc.registerFont('Bold', boldFont);
+    else doc.font('Helvetica-Bold'); // Fallback
+
     doc.font('Regular');
 
     const ORANGE = '#EA580C';
