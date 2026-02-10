@@ -113,40 +113,41 @@ export default function Reports() {
     return (
         <div>
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Günlük Raporlar</h1>
-                    <p className="text-sm text-gray-500">Personel saha raporları ve PDF çıktıları.</p>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+                <div className="w-full sm:w-auto">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-800">Günlük Raporlar</h1>
+                    <p className="text-xs md:text-sm text-gray-500">Personel saha raporları ve PDF çıktıları.</p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
                     <button
                         onClick={() => handleDownloadExcel()}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition shadow-sm"
-                        title="Günlük Raporu Excel Olarak İndir"
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition shadow-sm w-full sm:w-auto"
                     >
                         <Download size={18} />
-                        <span className="hidden md:inline">Excel İndir</span>
+                        <span className="font-medium">Excel İndir</span>
                     </button>
 
-                    <div className="relative">
-                        <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Personel veya plaka ara..."
-                            className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm w-64"
-                        />
-                    </div>
-                    <div className="relative">
-                        <Calendar className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm"
-                        />
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:w-48">
+                            <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Ara..."
+                                className="pl-9 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm w-full"
+                            />
+                        </div>
+                        <div className="relative flex-1 sm:w-40">
+                            <Calendar className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                className="pl-9 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm w-full"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
