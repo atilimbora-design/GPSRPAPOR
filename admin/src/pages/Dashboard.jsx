@@ -58,7 +58,7 @@ export default function Dashboard() {
         });
 
         // Periodic API Refresh (fallback)
-        const interval = setInterval(fetchPersonnel, 30000);
+        const interval = setInterval(fetchPersonnel, 10000); // 10 saniyeye düşürüldü
 
         return () => {
             clearInterval(interval);
@@ -148,7 +148,7 @@ export default function Dashboard() {
 
                     return {
                         ...p,
-                        is_online: diffMinutes < 5
+                        is_online: diffMinutes < 2 // 5 dakikadan 2 dakikaya düşürüldü daha hassas takip için
                     };
                 }
                 return p;
@@ -241,15 +241,22 @@ export default function Dashboard() {
                                 {/* Status */}
                                 <div className="flex-1 min-w-0">
                                     <div className="font-medium text-gray-900 truncate">{p.full_name}</div>
-                                    {p.is_online ? (
-                                        <div className="text-xs text-gray-500 flex items-center gap-2">
-                                            <span>🔋 %{p.battery_level}</span>
-                                            <span>•</span>
-                                            <span>{Math.round(p.speed)} km/s</span>
-                                        </div>
-                                    ) : (
-                                        <div className="text-xs text-gray-400 italic">Çevrimdışı</div>
-                                    )}
+                                    <div className="text-xs text-gray-500 flex flex-col gap-0.5">
+                                        {p.is_online ? (
+                                            <div className="text-xs text-gray-500 flex items-center gap-2">
+                                                <span>🔋 %{p.battery_level}</span>
+                                                <span>•</span>
+                                                <span>{Math.round(p.speed)} km/s</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400 italic">Çevrimdışı</span>
+                                        )}
+                                        {p.last_update && (
+                                            <span className="text-[10px] text-gray-400">
+                                                Son: {new Date(p.last_update).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Actions */}

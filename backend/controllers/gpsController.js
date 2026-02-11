@@ -38,9 +38,6 @@ exports.updateLocation = (req, res) => {
 
         // Broadcast to admins via Socket.io
         if (req.io) {
-            const now = new Date();
-            const turkeyTime = new Date(now.getTime() + (3 * 60 * 60 * 1000)).toISOString();
-
             req.io.to('admin_gps').emit('gps_updated', {
                 user_id: user_id,
                 latitude,
@@ -48,7 +45,7 @@ exports.updateLocation = (req, res) => {
                 speed: speed || 0,
                 battery_level: battery_level || 100,
                 is_online: true,
-                timestamp: turkeyTime,
+                timestamp: new Date().toISOString(),
                 source: 'http'
             });
         }
@@ -86,7 +83,6 @@ exports.getLiveLocations = (req, res) => {
   `;
 
     if (active_only === 'true') {
-        // Only show users who updated location in last 5 minutes
         sql += ` AND datetime(u.last_location_update) > datetime('now', '-5 minutes')`;
     }
 
@@ -95,12 +91,13 @@ exports.getLiveLocations = (req, res) => {
             return res.status(500).json({ success: false, error: err.message });
         }
 
-        // Convert last_update timestamps to Turkey timezone (UTC+3)
+        // Standardize timestamps with 'Z' for UTC
         const processedRows = rows.map(row => {
             if (row.last_update) {
-                const utcDate = new Date(row.last_update);
-                const turkeyDate = new Date(utcDate.getTime() + (3 * 60 * 60 * 1000));
-                row.last_update = turkeyDate.toISOString();
+                // SQLite's CURRENT_TIMESTAMP is like "2024-02-11 12:00:00"
+                // Parse it as UTC and convert to ISO
+                const utcDate = new Date(row.last_update + ' Z');
+                row.last_update = utcDate.toISOString();
             }
             return row;
         });
