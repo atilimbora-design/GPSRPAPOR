@@ -98,8 +98,9 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.get('/health', (req, res) => {
     res.json({
         success: true,
-        message: 'Server is running',
-        version: 'v1.2.3',
+        message: 'Atilim Gida System - FORCE_REFRESHED',
+        version: 'v1.3.0_FINAL',
+        status: 'READY_STABLE',
         timestamp: new Date().toISOString()
     });
 });
