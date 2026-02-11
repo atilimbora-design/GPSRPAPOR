@@ -50,6 +50,7 @@ export default function Dashboard() {
                         // Ensure is_online is true on update unless explicitly false
                         is_online: data.is_online !== undefined ? data.is_online : true,
                         // Update timestamp so local checker keeps it online
+                        version: 'v1.2.3',
                         last_update: data.timestamp || new Date().toISOString()
                     };
                 }
@@ -186,7 +187,7 @@ export default function Dashboard() {
         <div className="flex flex-col h-full bg-gray-50">
             {/* Version Banner for verification */}
             <div className="bg-blue-600 text-white text-[10px] py-0.5 px-4 text-center font-mono">
-                SYSTEM_v1.2.2_STABLE | {new Date().toLocaleTimeString('tr-TR')}
+                SYSTEM_v1.2.3_BOSPHORUS | {new Date().toLocaleTimeString('tr-TR')}
             </div>
             {/* Top Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -226,7 +227,7 @@ export default function Dashboard() {
                 <div className="w-full lg:w-96 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
                     <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
                         <h2 className="font-semibold text-gray-800">Personel Durumu</h2>
-                        <span className="text-[10px] text-gray-400 font-mono">v1.2.1 (Full System Refresh)</span>
+                        <span className="text-[10px] text-gray-400 font-mono">v1.2.3</span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-1 bg-white">
                         {sortedPersonnel.map(p => (
