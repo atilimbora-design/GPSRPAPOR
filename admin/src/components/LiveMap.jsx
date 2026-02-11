@@ -19,7 +19,9 @@ function MapController({ center, zoom }) {
 // Custom Marker Generator
 const createCustomIcon = (user) => {
     const hasPhoto = user.profile_photo;
-    const photoUrl = hasPhoto ? `http://localhost:3000/${user.profile_photo}` : null;
+    // Get base URL from api config or current origin
+    const baseUrl = window.location.origin.includes('localhost') ? 'http://localhost:3000' : window.location.origin;
+    const photoUrl = hasPhoto ? `${baseUrl}/${user.profile_photo}` : null;
 
     // Initials
     const initials = user.full_name
@@ -93,7 +95,9 @@ export default function LiveMap({ focusUser }) {
         fetchData();
 
         const token = localStorage.getItem('token');
-        const socket = io('http://localhost:3000', {
+        const socketServerUrl = window.location.origin.includes('localhost') ? 'http://localhost:3000' : window.location.origin;
+
+        const socket = io(socketServerUrl, {
             auth: { token },
             query: { userRole: 'admin' }
         });
@@ -177,6 +181,9 @@ export default function LiveMap({ focusUser }) {
         return [lat, lng];
     };
 
+    // Get base URL for images in Popup
+    const baseUrl = window.location.origin.includes('localhost') ? 'http://localhost:3000' : window.location.origin;
+
     return (
         <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             <MapContainer
@@ -203,8 +210,8 @@ export default function LiveMap({ focusUser }) {
                                     <div className="flex items-center gap-3 mb-2">
                                         <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden text-xs font-bold text-gray-600">
                                             {v.profile_photo
-                                                ? <img src={`http://localhost:3000/${v.profile_photo}`} className="w-full h-full object-cover" />
-                                                : v.full_name.substring(0, 2).toUpperCase()
+                                                ? <img src={`${baseUrl}/${v.profile_photo}`} className="w-full h-full object-cover" />
+                                                : (v.full_name || '??').substring(0, 2).toUpperCase()
                                             }
                                         </div>
                                         <div>

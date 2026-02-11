@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Backend Development Service
+  backend-dev:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    container_name: gps-rapor-backend-dev
+    ports:
+      - "3000:3000"
+      - "9229:9229" # Node.js debugging port
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DATABASE_URL=sqlite:/app/data/database.sqlite
+      - JWT_SECRET=gps_rapor_development_secret_key_change_in_production_2024
+      - ENCRYPTION_KEY=gps_rapor_encryption_key_32_chars
+      - REDIS_URL=redis://redis-dev:6379
+      - LOG_LEVEL=debug
+      - DEBUG=gps-rapor:*
+    volumes:
+      - ./backend:/app
+      - backend_dev_data:/app/data
+      - backend_dev_uploads:/app/uploads
+      - backend_dev_logs:/app/logs
+      - /app/node_modules # Prevent overwriting node_modules
+    depends_on:
+      - redis-dev
+    restart: unless-stopped
+    networks:
+      - gps-rapor-dev-network
+    command: npm run dev
+
+  # Redis Development Service
+  redis-dev:
+    image: redis:7-alpine
+    container_name: gps-rapor-redis-dev
+    ports:
+      - "6380:6379" # Different port to avoid conflicts
+    volumes:
+      - redis_dev_data:/data
+    restart: unless-stopped
+    networks:
+      - gps-rapor-dev-network
+    command: redis-server --appendonly yes
+
+  # Database Admin Tool (Optional)
+  adminer:
+    image: adminer
+    container_name: gps-rapor-adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - gps-rapor-dev-network
+    profiles:
+      - tools
+
+volumes:
+  backend_dev_data:
+    driver: local
+  backend_dev_uploads:
+    driver: local
+  backend_dev_logs:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  gps-rapor-dev-network:
+    driver: bridge

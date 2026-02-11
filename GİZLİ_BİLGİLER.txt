@@ -1,0 +1,67 @@
+# 🔐 ATILIM GIDA - GİZLİ BİLGİLER
+# Bu dosyayı GÜVENLİ bir yerde sakla!
+# GitHub'a ASLA yükleme!
+
+## ===============================================
+## RASPBERRY PI ERİŞİM
+## ===============================================
+RPI_IP=192.168.1.104
+RPI_SSH_USER=pi
+RPI_SSH_PASSWORD=[SSH ŞİFRENİ BURAYA YAZ]
+
+## Coolify (Container Management)
+COOLIFY_URL=http://192.168.1.104:8000
+COOLIFY_EMAIL=[COOLIFY GİRİŞ EMAİLİ]
+COOLIFY_PASSWORD=[COOLIFY ŞİFRESİ]
+
+## ===============================================
+## BACKEND API
+## ===============================================
+BACKEND_URL=http://192.168.1.104:5000
+JWT_SECRET=gizli_anahtar
+
+## Admin User (Database'de encrypted)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=[ADMİN ŞİFRESİ - İHTİYAÇ OLURSA BURAYA YAZ]
+
+## ===============================================
+## GITHUB
+## ===============================================
+GITHUB_REPO=https://github.com/atilimbora-design/GPSRPAPOR
+GITHUB_USERNAME=atilimbora-design
+GITHUB_TOKEN=[GITHUB PERSONAL ACCESS TOKEN - İHTİYAÇ OLURSA]
+
+## ===============================================
+## EXPO
+## ===============================================
+EXPO_USERNAME=arober
+EXPO_EMAIL=[EXPO HESAP EMAİLİ]
+EXPO_PASSWORD=[EXPO ŞİFRESİ]
+
+## Project Info
+EXPO_PROJECT_ID=c11e1b0b-37c0-4cce-9e47-9a2264bfac97
+EXPO_PROJECT_SLUG=atilim-gida
+EXPO_DASHBOARD=https://expo.dev/accounts/arober/projects/atilim-gida
+
+## ===============================================
+## DATABASE
+## ===============================================
+DB_PATH=backend/database.sqlite
+DB_TYPE=SQLite
+
+## Test Users (Development)
+TEST_USER_1_USERNAME=dincer
+TEST_USER_1_PASSWORD=[TEST ŞİFRESİ]
+
+TEST_USER_2_USERNAME=ferhat
+TEST_USER_2_PASSWORD=[TEST ŞİFRESİ]
+
+## ===============================================
+## NOTLAR
+## ===============================================
+# 1. Bu dosyayı güvenli bir yerde sakla (KeePass, 1Password, vb.)
+# 2. Şifreleri doldur (köşeli parantezleri sil)
+# 3. Asla GitHub'a yükleme!
+# 4. İleride AI'ya gösterirken bu dosyayı paylaş
+
+## SON GÜNCELLEME: 10 Şubat 2026

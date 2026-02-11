@@ -19,31 +19,45 @@ exports.updateLocation = (req, res) => {
     const { latitude, longitude, speed, battery_level, accuracy, timestamp } = req.body;
     const user_id = req.user.id;
 
-    // Insert into DB
-    const stmt = db.prepare(`
-    INSERT INTO gps_locations 
-    (user_id, latitude, longitude, speed, battery_level, accuracy, timestamp, is_online)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-  `);
+    // Insert into DB (History)
+    db.run(`
+        INSERT INTO gps_locations 
+        (user_id, latitude, longitude, speed, battery_level, accuracy, timestamp, is_online)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `, [user_id, latitude, longitude, speed, battery_level, accuracy, timestamp || new Date().toISOString()]);
 
-    stmt.run([user_id, latitude, longitude, speed, battery_level, accuracy, timestamp || new Date().toISOString()], function (err) {
+    // Update Users Table (Current Status)
+    db.run(`
+        UPDATE users 
+        SET latitude = ?, longitude = ?, speed = ?, battery_level = ?, last_location_update = CURRENT_TIMESTAMP 
+        WHERE id = ?
+    `, [latitude, longitude, speed || 0, battery_level || 100, user_id], (err) => {
         if (err) {
-            return res.status(500).json({ success: false, error: err.message });
+            console.error("User Status Update Error:", err.message);
         }
 
-        // Note: Emitting socket event could also happen here if we wanted to couple HTTP update with Socket broadcast,
-        // but typically the mobile app sends data via HTTP for storage AND Socket for realtime, OR just Socket and server handles storage.
-        // The prompt implies a hybrid or specific flow:
-        // "POST /api/gps/update ... Socket.io ile adminlere real-time gönder"
-        // So we should ideally emit the event here too if we have access to io instance, or RELY on the client to send socket event separately.
-        // For a robust backend, let's just confirm storage.
+        // Broadcast to admins via Socket.io
+        if (req.io) {
+            const now = new Date();
+            const turkeyTime = new Date(now.getTime() + (3 * 60 * 60 * 1000)).toISOString();
+
+            req.io.to('admin_gps').emit('gps_updated', {
+                user_id: user_id,
+                latitude,
+                longitude,
+                speed: speed || 0,
+                battery_level: battery_level || 100,
+                is_online: true,
+                timestamp: turkeyTime,
+                source: 'http'
+            });
+        }
 
         res.json({
             success: true,
             message: 'Konum güncellendi'
         });
     });
-    stmt.finalize();
 };
 
 exports.getLiveLocations = (req, res) => {
