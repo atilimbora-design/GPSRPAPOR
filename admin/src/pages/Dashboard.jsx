@@ -184,6 +184,10 @@ export default function Dashboard() {
 
     return (
         <div className="flex flex-col h-full bg-gray-50">
+            {/* Version Banner for verification */}
+            <div className="bg-blue-600 text-white text-[10px] py-0.5 px-4 text-center font-mono">
+                SYSTEM_v1.2.2_STABLE | {new Date().toLocaleTimeString('tr-TR')}
+            </div>
             {/* Top Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {[
