@@ -169,12 +169,15 @@ export default function Dashboard() {
             .substring(0, 2);
     };
 
-    // Sort personnel: Online first, then alphabetically
+    // Sort personnel: Online first (handle both boolean and 1/0), then alphabetically
     const sortedPersonnel = [...personnel].sort((a, b) => {
-        if (a.is_online === b.is_online) {
+        const aOnline = a.is_online === true || a.is_online === 1;
+        const bOnline = b.is_online === true || b.is_online === 1;
+
+        if (aOnline === bOnline) {
             return (a.full_name || '').localeCompare(b.full_name || '', 'tr');
         }
-        return a.is_online ? -1 : 1;
+        return aOnline ? -1 : 1;
     });
 
     const baseUrl = window.location.origin.includes('localhost') ? 'http://localhost:3000' : window.location.origin;
