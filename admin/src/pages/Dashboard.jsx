@@ -33,7 +33,9 @@ export default function Dashboard() {
 
         // Socket Connection for Real-time Updates
         const token = localStorage.getItem('token');
-        const socket = io('http://localhost:3000', {
+        const socketServerUrl = window.location.origin.includes('localhost') ? 'http://localhost:3000' : window.location.origin;
+
+        const socket = io(socketServerUrl, {
             auth: { token },
             query: { userRole: 'admin' },
             reconnection: true
@@ -158,6 +160,7 @@ export default function Dashboard() {
 
     // Helper for Initials
     const getInitials = (name) => {
+        if (!name) return '??';
         return name
             .split(' ')
             .map(n => n[0])
@@ -165,6 +168,16 @@ export default function Dashboard() {
             .toUpperCase()
             .substring(0, 2);
     };
+
+    // Sort personnel: Online first, then alphabetically
+    const sortedPersonnel = [...personnel].sort((a, b) => {
+        if (a.is_online === b.is_online) {
+            return (a.full_name || '').localeCompare(b.full_name || '', 'tr');
+        }
+        return a.is_online ? -1 : 1;
+    });
+
+    const baseUrl = window.location.origin.includes('localhost') ? 'http://localhost:3000' : window.location.origin;
 
     return (
         <div className="flex flex-col h-full bg-gray-50">
@@ -207,8 +220,8 @@ export default function Dashboard() {
                     <div className="p-4 border-b bg-gray-50">
                         <h2 className="font-semibold text-gray-800">Personel Durumu</h2>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                        {personnel.map(p => (
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1 bg-white">
+                        {sortedPersonnel.map(p => (
                             <div
                                 key={p.user_id}
                                 onClick={() => handleFocus(p)}
@@ -218,7 +231,7 @@ export default function Dashboard() {
                                 <div className="relative">
                                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold overflow-hidden shadow-sm">
                                         {p.profile_photo
-                                            ? <img src={`http://localhost:3000/${p.profile_photo}`} className="w-full h-full object-cover" />
+                                            ? <img src={`${baseUrl}/${p.profile_photo}`} className="w-full h-full object-cover" />
                                             : getInitials(p.full_name)
                                         }
                                     </div>
@@ -235,7 +248,7 @@ export default function Dashboard() {
                                             <span>{Math.round(p.speed)} km/s</span>
                                         </div>
                                     ) : (
-                                        <div className="text-xs text-gray-400 italic">Çıkış yapıldı</div>
+                                        <div className="text-xs text-gray-400 italic">Çevrimdışı</div>
                                     )}
                                 </div>
 
@@ -250,7 +263,7 @@ export default function Dashboard() {
                             </div>
                         ))}
                         {personnel.length === 0 && (
-                            <div className="text-center text-gray-400 py-10 text-sm">Hiçbir personel çevrimiçi değil</div>
+                            <div className="text-center text-gray-400 py-10 text-sm italic">Personel listesi yükleniyor...</div>
                         )}
                     </div>
                 </div>
