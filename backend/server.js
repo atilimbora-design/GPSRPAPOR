@@ -59,6 +59,16 @@ app.use((req, res, next) => {
     next();
 });
 
+// IMMEDIATE HEALTH CHECK (v1.3.0)
+app.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Atilim Gida - MEGA_REFRESH',
+        version: 'v1.3.1_ULTRASONIC',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Static files (uploads) - Ensure directory exists or create it
 const fs = require('fs');
 ['uploads', 'uploads/profiles', 'uploads/receipts', 'uploads/messages', 'uploads/groups', 'uploads/reports'].forEach(dir => {
@@ -94,16 +104,7 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
-// Health check
-app.get('/health', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Atilim Gida System - FORCE_REFRESHED',
-        version: 'v1.3.0_FINAL',
-        status: 'READY_STABLE',
-        timestamp: new Date().toISOString()
-    });
-});
+// Health check (Deprecated - Moved to top)
 
 // SPA Fallback (For React Routing) - Must be after API routes
 app.get('*', (req, res, next) => {
