@@ -19,31 +19,24 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
         const { locations } = data;
         const location = locations[0];
 
-        // UserId ve token'ı storage'dan al
         const userId = await AsyncStorage.getItem('userId');
         const token = await AsyncStorage.getItem('token');
 
-        if (!userId || !token) {
-            console.log('No user logged in, skipping location update');
-            return;
-        }
+        if (!userId || !token) return;
 
-        // Batarya seviyesini al
         let batteryLevel = 100;
         try {
             batteryLevel = Math.round((await Battery.getBatteryLevelAsync()) * 100);
-        } catch (err) {
-            console.log("Battery info not available");
-        }
+        } catch (err) { }
 
         const { latitude, longitude, speed, heading, accuracy } = location.coords;
 
-        console.log('[Background] Location Update:', latitude, longitude, 'Battery:', batteryLevel);
+        // 1. Send via HTTP (Zaman aşımı kontrollü sert istek)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 saniye limit
 
-        // 1. Send via HTTP (Reliable Fallback)
         try {
-            // Import api dynamically or use axios directly to avoid circular dependency if any
-            const response = await fetch('https://takip.atilimgida.com/api/gps/update', {
+            await fetch('https://takip.atilimgida.com/api/gps/update', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -56,14 +49,15 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
                     battery_level: batteryLevel,
                     accuracy: accuracy || 0,
                     timestamp: new Date(location.timestamp).toISOString()
-                })
+                }),
+                signal: controller.signal
             });
-            console.log('[Background] HTTP Update Status:', response.status);
+            clearTimeout(timeoutId);
         } catch (err) {
-            console.error('[Background] HTTP Update Failed:', err.message);
+            console.log('[Background] HTTP update failed or timed out');
         }
 
-        // 2. Send via Socket (Real-time if connection is alive)
+        // 2. Socket (Önemli: Arka planda soket bazen uyur, HTTP üstteki asıl garantimizdir)
         if (socket.connected) {
             socket.emit('locationUpdate', {
                 userId: parseInt(userId),
@@ -79,91 +73,72 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
 });
 
 export default function LocationTracker({ user }) {
-    // useAuth hook removed
-
     useEffect(() => {
         if (!user) {
-            // Kullanıcı çıkış yaptıysa background tracking'i durdur
             stopBackgroundTracking();
             return;
         }
 
-        // UserId'yi storage'a kaydet (background task için)
         AsyncStorage.setItem('userId', user.id.toString());
 
         const startTracking = async () => {
             try {
-                // 1. Ön plan izni
-                const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
-                if (foregroundStatus !== 'granted') {
-                    Alert.alert('İzin Hatası', 'Konum takibi için izin gerekli.');
+                const { status: foreStatus } = await Location.requestForegroundPermissionsAsync();
+                const { status: backStatus } = await Location.requestBackgroundPermissionsAsync();
+
+                if (foreStatus !== 'granted' || backStatus !== 'granted') {
+                    Alert.alert('Kritik İzin Eksik', 'Kesintisiz takip için "Her zaman izin ver" seçeneğini seçmelisiniz.');
                     return;
                 }
 
-                // 2. Arka plan izni (kritik!)
-                const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-                if (backgroundStatus !== 'granted') {
-                    Alert.alert('Arka Plan İzni', 'Uygulama kapalıyken konum takibi için lütfen arka plan iznini verin.');
-                }
-
-                // 3. Socket Bağla
                 if (!socket.connected) {
                     socket.auth = { token: user.token };
                     socket.connect();
-                    console.log('Socket connecting...');
-
-                    socket.on('connect', () => {
-                        console.log('Socket connected:', socket.id);
-                        socket.emit('register', user.id);
-                    });
                 }
 
-                // 4. Background Location Tracking Başlat
+                // 4. Derin Takip Ayarları (Life360 Tarzı)
                 const isRegistered = await TaskManager.isTaskRegisteredAsync(LOCATION_TASK_NAME);
                 if (!isRegistered) {
                     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
-                        accuracy: Location.Accuracy.Balanced, // Background için Balanced daha kararlı
-                        timeInterval: 10000, // 10 saniye
+                        accuracy: Location.Accuracy.Highest, // En yüksek hassasiyet
+                        timeInterval: 10000,
                         distanceInterval: 10,
+                        // Bu kısım Android/iOS'un uygulamayı "Navigasyon" sanmasını sağlar
+                        activityType: Location.ActivityType.AutomotiveNavigation,
                         foregroundService: {
-                            notificationTitle: 'Atılım Gıda Aktif',
-                            notificationBody: 'Konumunuz güvenli takip ediliyor.',
+                            notificationTitle: 'Atılım Gıda: Takip Aktif',
+                            notificationBody: 'Saha operasyonu için konumunuz başarıyla aktarılıyor.',
                             notificationColor: '#2563EB',
                             killServiceOnTerminate: false,
                         },
                         pausesUpdatesAutomatically: false,
                         showsBackgroundLocationIndicator: true,
+                        deferredUpdatesInterval: 10000,
+                        deferredUpdatesDistance: 10,
                     });
-                    console.log('Background location tracking started (Persistent)');
-                } else {
-                    console.log('Background location tracking already active');
+                    console.log('Deep tracking started');
                 }
 
-                // 5. Foreground Location Tracking (Ekstra katman)
+                // 5. Ön Planda İzleme
                 await Location.watchPositionAsync({
-                    accuracy: Location.Accuracy.High,
+                    accuracy: Location.Accuracy.Highest,
                     timeInterval: 5000,
                     distanceInterval: 5,
                 }, (location) => {
-                    const { latitude, longitude, speed, heading, accuracy } = location.coords;
-
-                    // Socket üzerinden gönder (Ön planda socket daha iyidir)
                     if (socket.connected) {
                         socket.emit('locationUpdate', {
                             userId: parseInt(user.id),
-                            latitude,
-                            longitude,
-                            speed: speed || 0,
-                            heading,
-                            batteryLevel: 100, // Background değilse 100 veya opsiyonel
+                            latitude: location.coords.latitude,
+                            longitude: location.coords.longitude,
+                            speed: location.coords.speed || 0,
+                            batteryLevel: 100,
                             timestamp: location.timestamp
                         });
                     }
                 });
 
             } catch (err) {
-                console.error("Tracking Error:", err);
-                Alert.alert('Hata', 'Konum takibi başlatılamadı: ' + err.message);
+                console.error("Tracking error:", err);
             }
         };
 
