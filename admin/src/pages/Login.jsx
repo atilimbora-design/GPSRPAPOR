@@ -81,7 +81,7 @@ export default function Login() {
                 </form>
 
                 <div className="mt-8 pt-4 border-t border-gray-100 text-center">
-                    <span className="text-[10px] text-gray-400 font-mono">SYSTEM_v1.3.0_FINAL</span>
+                    <span className="text-[10px] text-gray-400 font-mono">SYSTEM_v1.3.1_ULTRASONIC</span>
                 </div>
             </div>
         </div>
