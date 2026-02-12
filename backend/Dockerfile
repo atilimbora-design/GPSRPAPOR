@@ -18,7 +18,7 @@ RUN mkdir -p database uploads uploads/profiles uploads/receipts uploads/messages
     chmod -R 777 database uploads
 
 # Portu dışa aç
-EXPOSE 3005
+EXPOSE 3000
 
 # Uygulamayı başlat
 CMD ["npm", "start"]
