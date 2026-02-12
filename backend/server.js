@@ -145,7 +145,7 @@ socketHandler(io);
 cronJobs.startAll();
 
 // Server start
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3005;
 server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 Base URL: ${process.env.BASE_URL}`);
