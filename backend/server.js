@@ -29,6 +29,7 @@ const socketHandler = require('./sockets/handler');
 const cronJobs = require('./cron/jobs');
 
 const app = express();
+app.set('trust proxy', true);
 const server = http.createServer(app);
 
 const allowedOrigins = process.env.SOCKET_CORS_ORIGIN ? process.env.SOCKET_CORS_ORIGIN.split(',') : "*";
@@ -37,8 +38,13 @@ const allowedOrigins = process.env.SOCKET_CORS_ORIGIN ? process.env.SOCKET_CORS_
 const io = socketIo(server, {
     cors: {
         origin: allowedOrigins,
-        methods: ["GET", "POST"]
-    }
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    connectTimeout: 45000,
+    allowEIO3: true
 });
 
 // Middleware
